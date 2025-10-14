@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#00e0e0">
-  <title>Scorekeeper — Single file</title>
+  <title>Scorekeeper</title>
   <style>
     :root {
       --bg: #0f1724;
@@ -578,32 +578,50 @@
     .new-game-row {
       display: flex;
       gap: 8px;
-      flex-wrap: wrap;
+      align-items: center;
+      width: 100%;
     }
 
-    .new-game-row input.text-input,
-    .new-game-row select.text-input {
-      flex: 1;
-      min-width: 0;
+    .new-game-row input,
+    .new-game-row select {
+      flex: 1 1 0;
+    }
+
+    #newGameTemplate {
+      flex: 1 1 0;
+    }
+
+    #createGameBtn {
+      flex: 0 0 auto;
+      margin-left: auto;
     }
 
     .new-game-row button.btn {
       flex-shrink: 0;
     }
 
-    /* --- responsive: merge back to one row on wide screens --- */
+    /* --- Responsive layout tweak for wider screens --- */
     @media (min-width: 600px) {
       .new-game-controls {
         flex-direction: row;
         flex-wrap: wrap;
-      }
-      .new-game-row {
-        flex: 1;
-        flex-direction: row;
         align-items: center;
       }
-      .new-game-row + .new-game-row {
-        flex: none;
+
+      .new-game-row {
+        flex: 1 1 auto;
+        gap: 8px;
+      }
+
+      /* Title + Type inline */
+      .new-game-row:first-child {
+        flex: 1 1 60%;
+      }
+
+      /* Template + Create inline */
+      .new-game-row:last-child {
+        flex: 1 1 40%;
+        justify-content: flex-end;
       }
     }
 
@@ -676,7 +694,6 @@
       <div class="title">
         <button id="gamesMenuBtn" class="menu-btn" title="Open games menu">🏷️ <span id="currentGameTitle">New
             Game</span></button>
-        <div class="small muted" id="gameTypeBadge">—</div>
       </div>
       <div class="controls">
         <button id="addPlayerBtn" class="btn" title="Add player">➕ Player</button>
@@ -794,8 +811,8 @@
 
     let games = loadJSON(STORAGE_KEYS.games, []);
     let templates = loadJSON(STORAGE_KEYS.templates, {
-      "Yatzee": ['1', '2', '3', '4', '5', '6', 'TK', 'FK', 'FH', 'SS', 'LS', 'YZ', 'CH', 'Y2'],
-      "Generala": ['1', '2', '3', '4', '5', '6', 'E', 'F', 'P', 'G', 'DG']
+      "Generala": ['1', '2', '3', '4', '5', '6', 'E', 'F', 'P', 'G', 'DG'],
+      "Yatzee": ['1', '2', '3', '4', '5', '6', 'TK', 'FK', 'FH', 'SS', 'LS', 'YZ', 'CH', 'Y2']
     });
 
     // ensure sane structure
@@ -848,7 +865,6 @@
     const createdAtEl = document.getElementById('createdAt');
     const playersCount = document.getElementById('playersCount');
     const currentGameTitle = document.getElementById('currentGameTitle');
-    const gameTypeBadge = document.getElementById('gameTypeBadge');
     const gameArea = document.getElementById('gameArea');
     const templatesSelector = newGameTemplate;
 
@@ -903,10 +919,10 @@
         el.className = 'card';
         el.style.marginBottom = '8px';
         el.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="padding-right:8px;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
           <div style="font-weight:700">${escapeHtml(g.title)}</div>
-          <div class="muted small">${g.type}${g.type === 'Fixed' && g.template ? ' • ' + escapeHtml(g.template) : ''} • ${formatDateISO(g.createdAt)}</div>
+          <div class="muted small">${g.type === 'Fixed' && g.template ? escapeHtml(g.template) : g.type} • ${formatDateISO(g.createdAt)}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
           <button class="menu-btn btn-open" data-id="${g.id}">Open</button>
@@ -1025,7 +1041,6 @@
       const g = activeGameId ? findGame(activeGameId) : null;
       if (!g) {
         currentGameTitle.textContent = 'New Game';
-        gameTypeBadge.textContent = '—';
         titleEditable.textContent = 'No game selected';
         createdAtEl.textContent = 'Created: —';
         playersCount.textContent = '0 players';
@@ -1033,7 +1048,6 @@
         return;
       }
       currentGameTitle.textContent = g.title;
-      gameTypeBadge.textContent = g.type;
       titleEditable.textContent = g.title;
       createdAtEl.textContent = 'Created: ' + formatDateISO(g.createdAt) + (g.type === 'Fixed' && g.template ? ' (' + g.template + ')' : '');
       playersCount.textContent = `${g.players.length} player${g.players.length === 1 ? '' : 's'}`;
