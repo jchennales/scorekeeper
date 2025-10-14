@@ -1357,6 +1357,15 @@
           renderApp(); // re-render to adjust number of sets if necessary
         });
       });
+      // clicking anywhere on that player's squares also adds 1
+      grid.querySelectorAll('.tally-squares').forEach(container => {
+        container.addEventListener('click', e => {
+          const playerIdx = Number(container.id.replace('player-', ''));
+          g.tally[playerIdx] = (g.tally[playerIdx] || 0) + 1;
+          saveAll();
+          renderApp();
+        });
+      });
       grid.querySelectorAll('.minus').forEach(b => {
         b.addEventListener('click', (e) => {
           const idx = Number(e.target.dataset.idx);
