@@ -1,0 +1,1671 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#00e0e0">
+  <title>Scorekeeper — Single file</title>
+  <style>
+    :root {
+      --bg: #0f1724;
+      --card: #0b1220;
+      --muted: #9aa6b2;
+      --accent: #06b6d4;
+      --danger: #ef4444;
+      --glass: hsla(0, 0%, 100%, 0.03);
+      --surface: #0b1220;
+      --text: #e6eef6;
+      --round: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial
+    }
+
+    body,
+    html {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(180deg, #071423, #061220);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased
+    }
+
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 12px 16px 80px
+    }
+
+    header {
+      gap: 12px;
+      margin-bottom: 12px
+    }
+
+    .title {
+      font-weight: 700;
+      font-size: 18px;
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    .title button {
+      background: transparent;
+      border: 0;
+      color: var(--text);
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 10px
+    }
+
+    .menu-btn {
+      background: var(--glass);
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid hsla(0, 0%, 100%, .02)
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    .btn {
+      background: linear-gradient(180deg, #0ea5a8, #06b6d4);
+      color: #022;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 0;
+      font-weight: 600
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: 0;
+      color: var(--muted);
+      padding: 8px;
+      border-radius: 8px
+    }
+
+    .card {
+      background: linear-gradient(180deg, hsla(0, 0%, 100%, .02), hsla(0, 0%, 100%, .01));
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid hsla(0, 0%, 100%, .03);
+      box-shadow: 0 6px 18px rgba(2, 6, 23, .6)
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    .table-wrap {
+      overflow: auto;
+      background: transparent;
+      border-radius: 8px
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      min-width: 320px
+    }
+
+    td,
+    th {
+      padding: 8px 6px;
+      text-align: right;
+      border-bottom: 1px dashed hsla(0, 0%, 100%, .03)
+    }
+
+    td:first-child,
+    th:first-child {
+      text-align: right;
+      font-family: monospace
+    }
+
+    th {
+      font-weight: 700;
+      color: var(--muted);
+      font-size: 13px
+    }
+
+    input.cell,
+    td.input-cell {
+      padding: 6px
+    }
+
+    input.cell {
+      width: 72px;
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid hsla(0, 0%, 100%, .03);
+      background: transparent;
+      color: var(--text);
+      text-align: right
+    }
+
+    .round-num {
+      width: 48px;
+      text-align: right;
+      color: var(--muted);
+      font-family: monospace
+    }
+
+    .remove-row {
+      background: transparent;
+      border: 0;
+      color: var(--danger);
+      cursor: pointer;
+      padding: 6px
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .players-row th {
+      background: linear-gradient(180deg, hsla(0, 0%, 100%, .012), transparent);
+      position: sticky;
+      top: 0;
+      z-index: 2
+    }
+
+    .total-row {
+      font-weight: 600;
+      background: linear-gradient(180deg, hsla(0, 0%, 100%, .02), transparent)
+    }
+
+    .tally-grid {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0;
+    }
+
+    .tally-player {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0.5rem;
+    }
+
+    .tally-name {
+      font-weight: 300;
+      margin-bottom: 6px;
+      text-align: center
+    }
+
+    .tally-squares {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+      min-height: 96px;
+    }
+
+    .tally-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: nowrap
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px
+    }
+
+    .pill {
+      background: hsla(0, 0%, 100%, .02);
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid hsla(0, 0%, 100%, .03);
+      cursor: pointer;
+      font-size: 13px
+    }
+
+    .modal-back {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, .6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50
+    }
+
+    .modal {
+      background: linear-gradient(180deg, #071321, #06101a);
+      padding: 12px;
+      border-radius: 12px;
+      max-width: 560px;
+      width: 100%;
+      border: 1px solid hsla(0, 0%, 100%, .04)
+    }
+
+    .modal h3 {
+      margin: 0 0 8px
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 8px
+    }
+
+    .text-input {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid hsla(0, 0%, 100%, .03);
+      background: transparent;
+      color: var(--text)
+    }
+
+    .grid-cols {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px
+    }
+
+    footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 10px;
+      background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .3));
+      display: flex;
+      justify-content: center
+    }
+
+    .footer-row {
+      max-width: 900px;
+      width: 100%;
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      padding: 16px 16px
+    }
+
+    .meta {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    @media (max-width:520px) {
+      .cell {
+        width: 58px
+      }
+
+      .tally-player {
+        min-width: 72px
+      }
+
+      .title {
+        font-size: 16px
+      }
+    }
+
+    /*
+    .sq {
+      position: relative;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 0.25rem;
+      margin: 0.25rem 0;
+      background: hsla(0, 0%, 100%, 0.03);
+      overflow: hidden;
+    }
+    */
+    .sq {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      background-color: #1c1f26; /* faint contrast to background */
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+      transition: background-color 0.25s ease, box-shadow 0.25s ease;
+    }    
+    
+    /* default segment = faint neutral line */
+    .seg {
+      position: absolute;
+      background: hsla(0, 0%, 100%, 0.07);
+      transition: background 0.15s ease;
+    }
+
+    /* active segment = accent color */
+    .seg:not(.hidden) {
+      background: var(--accent);
+    }
+
+    /* each border side */
+    .seg-left {
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+    }
+
+    .seg-top {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+    }
+
+    .seg-right {
+      top: 0;
+      right: 0;
+      width: 2px;
+      height: 100%;
+    }
+
+    .seg-bottom {
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+    }
+
+    /* diagonal tally slash */
+    .seg-diag {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: none !important;
+    }
+
+    .seg-diag::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 140%;
+      height: 2px;
+      background: var(--accent);
+      transform: translate(-50%, -50%) rotate(-45deg);
+    }
+
+    .hidden {
+      display: none
+    }
+
+    .danger {
+      color: var(--danger)
+    }
+
+    .muted-2 {
+      color: hsla(0, 0%, 100%, .06)
+    }
+
+    .label-left {
+      text-align: left;
+      padding-left: 8px
+    }
+
+    .template-list {
+      max-height: 220px;
+      overflow: auto;
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px dashed hsla(0, 0%, 100%, .02)
+    }
+
+    .flex-center {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    :root {
+      --bg-color: #10141b;
+      --card-bg: #1b222d;
+      --accent: #00bcd4;
+      --accent-light: #26d4ed;
+      --text-color: #e8f0f9;
+      --text-dim: #aab7c7;
+      --border-color: #2c3a4b;
+      --danger: #e74c3c;
+      --radius: 12px;
+      --shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      font-family: system-ui, -apple-system, Roboto, sans-serif
+    }
+
+    body {
+      background: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: .6rem 1rem;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 10
+    }
+
+    header h1 {
+      font-size: 1.1rem;
+      color: var(--accent);
+      margin: 0
+    }
+
+    button,
+    input[type=button],
+    input[type=submit] {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: .45rem .8rem;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+      box-shadow: var(--shadow)
+    }
+
+    button:hover {
+      background: var(--accent-light);
+      transform: scale(1.03)
+    }
+
+    button:disabled {
+      background: #555;
+      color: #888;
+      cursor: default;
+      box-shadow: none
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1.1rem;
+      margin: 0 .25rem
+    }
+
+    .icon-btn:hover {
+      background: var(--accent-light)
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1rem;
+      margin: 1rem
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    .table td,
+    .table th {
+      padding: .4rem;
+      border-bottom: 1px solid var(--border-color);
+      text-align: center
+    }
+
+    input[type=number],
+    input[type=text] {
+      background: var(--bg-color);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      width: 100%;
+      text-align: center;
+      font-size: 1rem;
+      padding: .3rem
+    }
+
+    input[type=number]:focus,
+    input[type=text]:focus {
+      border-color: var(--accent);
+      outline: none
+    }
+
+    .footer-buttons {
+      display: flex;
+      justify-content: center;
+      gap: .5rem;
+      padding: .75rem;
+      flex-wrap: wrap
+    }
+
+    .footer-buttons button {
+      flex: 1 1 45%;
+      min-width: 120px
+    }
+
+    /* --- new/ongoing game modal layout --- */
+    .new-game-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    /* individual row */
+    .new-game-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .new-game-row input.text-input,
+    .new-game-row select.text-input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .new-game-row button.btn {
+      flex-shrink: 0;
+    }
+
+    /* --- responsive: merge back to one row on wide screens --- */
+    @media (min-width: 600px) {
+      .new-game-controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      .new-game-row {
+        flex: 1;
+        flex-direction: row;
+        align-items: center;
+      }
+      .new-game-row + .new-game-row {
+        flex: none;
+      }
+    }
+
+    /* --- dropdown dark mode + cyan accent --- */
+    select.text-input {
+      background-color: #1c1f26;
+      color: #e5e5e5;
+      border: 1px solid #2b3038;
+      border-radius: 6px;
+      padding: 6px 8px;
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+      appearance: none;
+    }
+
+    select.text-input:hover,
+    select.text-input:focus {
+      border-color: #00e0ff;
+      outline: none;
+    }
+
+    select.text-input option {
+      background-color: #1c1f26;
+      color: #e5e5e5;
+    }
+
+    select.text-input option:hover,
+    select.text-input option:checked {
+      background-color: #00e0ff !important;
+      color: #0a0f14 !important;
+    }
+
+    .menu-wrap {
+      position: relative;
+    }
+
+    .menu-dropdown {
+      position: absolute;
+      right: 0;
+      top: 110%;
+      background: var(--card-bg, #1e1f23);
+      border: 1px solid var(--border-color, #2a2b30);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      min-width: 120px;
+      z-index: 100;
+    }
+
+    .menu-dropdown.hidden {
+      display: none;
+    }
+
+    .menu-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      color: var(--text-color, #ddd);
+    }
+
+    .menu-item:hover {
+      background: var(--accent-bg, #0bb);
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <button id="gamesMenuBtn" class="menu-btn" title="Open games menu">🏷️ <span id="currentGameTitle">New
+            Game</span></button>
+        <div class="small muted" id="gameTypeBadge">—</div>
+      </div>
+      <div class="controls">
+        <button id="addPlayerBtn" class="btn" title="Add player">➕ Player</button>
+        <div class="menu-wrap">
+          <button id="menuBtn" class="btn" style="font-size:1.2em;">☰</button>
+          <div id="menuDropdown" class="menu-dropdown hidden">
+            <div class="menu-item" id="menuShare">Share</div>
+            <div class="menu-item" id="menuTemplates">Templates</div>
+          </div>
+        </div>
+        <!--<button id="shareBtn" class="btn" title="Share / Export">Share</button>-->
+      </div>
+    </header>
+
+    <section id="gameCard" class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-weight:800" id="titleEditable">New Game</div>
+          <div class="muted small" id="createdAt">Created: —</div>
+        </div>
+        <div class="muted small" id="playersCount">0 players</div>
+      </div>
+
+      <div id="gameArea">
+        <!-- Dynamic content -->
+        <div class="muted">No game selected. Create one from the menu.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modals -->
+  <div id="modalGames" class="modal-back">
+    <div class="modal">
+      <h3>Games</h3>
+      <div class="new-game-controls">
+        <div class="new-game-row">
+          <input id="newGameTitle" class="text-input" placeholder="Title" />
+          <select id="newGameType" class="text-input">
+            <option value="Standard">Standard</option>
+            <option value="Tally">Tally</option>
+            <option value="Fixed">Fixed</option>
+          </select>
+        </div>
+        <div class="new-game-row">
+          <select id="newGameTemplate" class="text-input hidden"></select>
+          <button id="createGameBtn" class="btn">Create</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;align-items:center">
+        <div class="muted-2">Ongoing games:</div>
+        <div id="gamesList" style="flex:1;overflow:auto;max-height:440px"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="closeGames" class="menu-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalTemplates" class="modal-back">
+    <div class="modal">
+      <h3>Templates (Fixed)</h3>
+      <div class="field">
+        <label class="small">Existing templates</label>
+        <div id="templatesContainer" class="template-list"></div>
+      </div>
+      <div class="field">
+        <label class="small">Create / Edit template (name & comma-separated labels)</label>
+        <input id="tplName" class="text-input" placeholder="Generala" />
+        <input id="tplLabels" class="text-input" placeholder="1,2,3,4,5,6,E,F,P,G,DG" />
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button id="saveTpl" class="btn">Save template</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button id="closeTpl" class="menu-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation modal -->
+  <div id="modalConfirm" class="modal-back">
+    <div class="modal">
+      <h3 id="confirmTitle">Confirm</h3>
+      <div id="confirmText" class="muted small" style="margin-bottom:12px"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button id="confirmCancel" class="menu-btn">Cancel</button>
+        <button id="confirmOk" class="btn danger">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    // --------------------------- PWA ---------------------------
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
+
+    // --------------------------- Persistence ---------------------------
+    const STORAGE_KEYS = {
+      games: 'sk_games_v1',
+      templates: 'sk_templates_v1'
+    };
+
+    function loadJSON(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        return JSON.parse(raw);
+      } catch (e) { return fallback; }
+    }
+    function saveJSON(key, obj) { localStorage.setItem(key, JSON.stringify(obj)); }
+
+    let games = loadJSON(STORAGE_KEYS.games, []);
+    let templates = loadJSON(STORAGE_KEYS.templates, {
+      "Yatzee": ['1', '2', '3', '4', '5', '6', 'TK', 'FK', 'FH', 'SS', 'LS', 'YZ', 'CH', 'Y2'],
+      "Generala": ['1', '2', '3', '4', '5', '6', 'E', 'F', 'P', 'G', 'DG']
+    });
+
+    // ensure sane structure
+    if (!Array.isArray(games)) games = [];
+    saveAll();
+
+    function saveAll() {
+      saveJSON(STORAGE_KEYS.games, games);
+      saveJSON(STORAGE_KEYS.templates, templates);
+    }
+
+    // --------------------------- Utilities ---------------------------
+    function uid(prefix = 'id') { return prefix + '_' + Math.random().toString(36).slice(2, 9); }
+    function formatDateISO(date) { // dd/mm/yyyy
+      const d = new Date(date);
+      return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    }
+    function formatDateForStore() { return (new Date()).toISOString(); }
+
+    // find active game index
+    let activeGameId = null;
+    function findGame(id) { return games.find(g => g.id === id); }
+    function setActiveGame(id) {
+      activeGameId = id;
+      renderApp();
+      saveAll();
+    }
+
+    // --------------------------- Initial UI wiring ---------------------------
+    const gamesMenuBtn = document.getElementById('gamesMenuBtn');
+    const modalGames = document.getElementById('modalGames');
+    const closeGames = document.getElementById('closeGames');
+    const gamesListDiv = document.getElementById('gamesList');
+    const newGameTitle = document.getElementById('newGameTitle');
+    const newGameType = document.getElementById('newGameType');
+    const createGameBtn = document.getElementById('createGameBtn');
+    const newGameTemplate = document.getElementById('newGameTemplate');
+
+    const modalTemplates = document.getElementById('modalTemplates');
+    const menuTemplates = document.getElementById('menuTemplates');
+    const closeTpl = document.getElementById('closeTpl');
+    const templatesContainer = document.getElementById('templatesContainer');
+    const tplName = document.getElementById('tplName');
+    const tplLabels = document.getElementById('tplLabels');
+    const saveTpl = document.getElementById('saveTpl');
+
+    const addPlayerBtn = document.getElementById('addPlayerBtn');
+    const menuShare = document.getElementById('menuShare');
+    const titleEditable = document.getElementById('titleEditable');
+    const createdAtEl = document.getElementById('createdAt');
+    const playersCount = document.getElementById('playersCount');
+    const currentGameTitle = document.getElementById('currentGameTitle');
+    const gameTypeBadge = document.getElementById('gameTypeBadge');
+    const gameArea = document.getElementById('gameArea');
+    const templatesSelector = newGameTemplate;
+
+    // confirm modal
+    const modalConfirm = document.getElementById('modalConfirm');
+    const confirmTitle = document.getElementById('confirmTitle');
+    const confirmText = document.getElementById('confirmText');
+    const confirmOk = document.getElementById('confirmOk');
+    const confirmCancel = document.getElementById('confirmCancel');
+
+    // wire events
+    gamesMenuBtn.addEventListener('click', () => { openGamesModal(); });
+    closeGames.addEventListener('click', () => { closeModal(modalGames); });
+    closeTpl.addEventListener('click', () => { closeModal(modalTemplates); });
+
+    newGameType.addEventListener('change', (e) => {
+      if (e.target.value === 'Fixed') { newGameTemplate.classList.remove('hidden'); populateTemplatesSelector(); }
+      else newGameTemplate.classList.add('hidden');
+    });
+
+    createGameBtn.addEventListener('click', () => {
+      const title = newGameTitle.value.trim() || 'Game ' + (games.length + 1);
+      const type = newGameType.value;
+      const id = uid('g');
+      const createdAt = formatDateForStore();
+      let game = { id, title, type, createdAt, players: [], rounds: [] };
+      if (type === 'Tally') { game.tally = []; } // integer scores per player
+      if (type === 'Fixed') {
+        game.template = (newGameTemplate.value || Object.keys(templates)[0] || null);
+        // rows: array of objects per label with player values null
+        const labels = templates[game.template] || [];
+        game.rows = labels.map(l => ({ label: l, vals: [] }));
+      }
+      games.unshift(game);
+      saveAll();
+      newGameTitle.value = '';
+      setActiveGame(id);
+      closeModal(modalGames);
+    });
+
+    function openGamesModal() {
+      modalGames.style.display = 'flex';
+      renderGamesList();
+      if (newGameType.value === 'Fixed') populateTemplatesSelector();
+    }
+
+    function renderGamesList() {
+      gamesListDiv.innerHTML = '';
+      if (games.length === 0) { gamesListDiv.innerHTML = '<div class="muted small">No games yet.</div>'; return; }
+      games.forEach(g => {
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.style.marginBottom = '8px';
+        el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700">${escapeHtml(g.title)}</div>
+          <div class="muted small">${g.type}${g.type === 'Fixed' && g.template ? ' • ' + escapeHtml(g.template) : ''} • ${formatDateISO(g.createdAt)}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="menu-btn btn-open" data-id="${g.id}">Open</button>
+          <button class="menu-btn btn-clear" data-id="${g.id}">Clear</button>
+          <button class="menu-btn btn-delete" data-id="${g.id}">Delete</button>
+        </div>
+      </div>
+    `;
+        gamesListDiv.appendChild(el);
+      });
+      // bind
+      gamesListDiv.querySelectorAll('.btn-open').forEach(b => b.addEventListener('click', e => { const id = e.target.dataset.id; setActiveGame(id); closeModal(modalGames); }));
+      gamesListDiv.querySelectorAll('.btn-clear').forEach(b => b.addEventListener('click', e => {
+        const id = e.target.dataset.id;
+        confirmDialog('Clear scores', 'This will reset scores and update the creation date for the selected game. Continue?', () => {
+          const g = findGame(id);
+          if (!g) return;
+          g.createdAt = formatDateForStore();
+          if (g.type === 'Standard') g.rounds = [];
+          if (g.type === 'Tally') g.tally = [];
+          if (g.type === 'Fixed') {
+            g.rows.forEach(r => r.vals = []);
+          }
+          saveAll();
+          renderGamesList();
+          if (activeGameId === id) renderApp();
+        });
+      }));
+      gamesListDiv.querySelectorAll('.btn-delete').forEach(b => b.addEventListener('click', e => {
+        const id = e.target.dataset.id;
+        confirmDialog('Delete game', 'Permanently delete this game?', () => {
+          games = games.filter(x => x.id !== id);
+          if (activeGameId === id) activeGameId = null;
+          saveAll();
+          renderGamesList();
+          renderApp();
+        });
+      }));
+    }
+
+    function populateTemplatesSelector() {
+      templatesSelector.innerHTML = '';
+      Object.keys(templates).forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k; opt.textContent = k;
+        templatesSelector.appendChild(opt);
+      });
+      if (Object.keys(templates).length === 0) {
+        templatesSelector.innerHTML = '<option value="">(no templates)</option>';
+      }
+    }
+
+    // Templates modal
+    function openTemplatesModal() {
+      modalTemplates.style.display = 'flex';
+      renderTemplates();
+    }
+    function renderTemplates() {
+      templatesContainer.innerHTML = '';
+      Object.entries(templates).forEach(([name, labels]) => {
+        const wrap = document.createElement('div');
+        wrap.style.display = 'flex'; wrap.style.justifyContent = 'space-between'; wrap.style.alignItems = 'center'; wrap.style.padding = '6px';
+        const left = document.createElement('div');
+        left.innerHTML = `<div style="font-weight:700">${escapeHtml(name)}</div><div class="small muted">${escapeHtml(labels.join(', '))}</div>`;
+        const right = document.createElement('div');
+        right.innerHTML = `<button class="menu-btn edit-tpl" data-name="${escapeHtml(name)}">Edit</button> <button class="menu-btn del-tpl" data-name="${escapeHtml(name)}">Delete</button>`;
+        wrap.appendChild(left); wrap.appendChild(right);
+        templatesContainer.appendChild(wrap);
+      });
+      templatesContainer.querySelectorAll('.edit-tpl').forEach(b => {
+        b.addEventListener('click', (e) => {
+          const nm = e.target.dataset.name;
+          tplName.value = nm;
+          tplLabels.value = templates[nm].join(',');
+        });
+      });
+      templatesContainer.querySelectorAll('.del-tpl').forEach(b => {
+        b.addEventListener('click', (e) => {
+          const nm = e.target.dataset.name;
+          confirmDialog('Delete template', `Delete template "${nm}"?`, () => {
+            delete templates[nm];
+            saveAll();
+            renderTemplates();
+          });
+        });
+      });
+    }
+    saveTpl.addEventListener('click', () => {
+      const name = tplName.value.trim();
+      const labels = tplLabels.value.split(',').map(s => s.trim()).filter(Boolean);
+      if (!name) { alert('Provide a template name.'); return; }
+      templates[name] = labels;
+      saveAll();
+      tplName.value = ''; tplLabels.value = '';
+      renderTemplates();
+      populateTemplatesSelector();
+    });
+
+    // confirm dialog helper
+    function confirmDialog(title, text, onOk) {
+      confirmTitle.textContent = title;
+      confirmText.textContent = text;
+      modalConfirm.style.display = 'flex';
+      confirmOk.onclick = () => {
+        modalConfirm.style.display = 'none';
+        onOk && onOk();
+      };
+      confirmCancel.onclick = () => modalConfirm.style.display = 'none';
+    }
+
+    // close modal
+    function closeModal(el) { el.style.display = 'none'; }
+
+    // --------------------------- Game area rendering & interactions ---------------------------
+    function renderApp() {
+      const g = activeGameId ? findGame(activeGameId) : null;
+      if (!g) {
+        currentGameTitle.textContent = 'New Game';
+        gameTypeBadge.textContent = '—';
+        titleEditable.textContent = 'No game selected';
+        createdAtEl.textContent = 'Created: —';
+        playersCount.textContent = '0 players';
+        gameArea.innerHTML = `<div class="muted">Open the <strong>Games</strong> menu to create a new game or open an existing one.</div>`;
+        return;
+      }
+      currentGameTitle.textContent = g.title;
+      gameTypeBadge.textContent = g.type;
+      titleEditable.textContent = g.title;
+      createdAtEl.textContent = 'Created: ' + formatDateISO(g.createdAt) + (g.type === 'Fixed' && g.template ? ' (' + g.template + ')' : '');
+      playersCount.textContent = `${g.players.length} player${g.players.length === 1 ? '' : 's'}`;
+
+      // allow renaming title inline
+      titleEditable.contentEditable = true;
+      titleEditable.onblur = () => {
+        const newTitle = titleEditable.textContent.trim() || 'Untitled';
+        g.title = newTitle;
+        currentGameTitle.textContent = newTitle;
+        saveAll();
+        renderGamesList();
+      };
+
+      if (g.type === 'Standard') renderStandard(g);
+      else if (g.type === 'Tally') renderTally(g);
+      else if (g.type === 'Fixed') renderFixed(g);
+      else gameArea.innerHTML = '<div class="muted">Unsupported type</div>';
+      saveAll();
+    }
+
+    // Add player flow: shows a small prompt to type name
+    addPlayerBtn.addEventListener('click', () => {
+      if (!activeGameId) { alert('Open or create a game first (Games menu).'); return; }
+      const g = findGame(activeGameId);
+      const name = prompt('Player name.');
+      if (!name) return;
+      addPlayerToGame(g, name.trim());
+      renderApp();
+    });
+
+    function addPlayerToGame(game, name) {
+      if (!name) return;
+      game.players.push(name);
+      // update per-type structures
+      if (game.type === 'Standard') {
+        // for existing rounds, append 0 as default for new player
+        game.rounds.forEach(r => { r[name] = (r[name] === undefined ? 0 : r[name]); });
+      } else if (game.type === 'Tally') {
+        if (!game.tally) game.tally = [];
+        game.tally.push(0);
+      } else if (game.type === 'Fixed') {
+        // ensure each row has same length vals
+        game.rows.forEach(r => r.vals.push(null));
+      }
+      saveAll();
+    }
+
+    // remove player
+    function removePlayerFromGame(game, idx) {
+      const name = game.players[idx];
+      confirmDialog('Remove player', `Remove "${name}" from the game? This will remove all their values.`, () => {
+        game.players.splice(idx, 1);
+        if (game.type === 'Standard') {
+          game.rounds.forEach(r => delete r[name]);
+        } else if (game.type === 'Tally') {
+          game.tally.splice(idx, 1);
+        } else if (game.type === 'Fixed') {
+          game.rows.forEach(r => { r.vals.splice(idx, 1); });
+        }
+        if (game.players.length === 0) {
+          // clear some data if no players
+        }
+        saveAll();
+        renderApp();
+      });
+    }
+
+    // ---------- Standard ----------
+    function renderStandard(g) {
+      // ensure rounds array exists
+      g.rounds = g.rounds || [];
+      const players = g.players;
+      const table = document.createElement('div');
+      table.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="addRound" class="btn">Add round</button>
+        <div class="pill" id="managePlayers">Players</div>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="stdTable"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+  `;
+      gameArea.innerHTML = '';
+      gameArea.appendChild(table);
+
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      const tfoot = table.querySelector('tfoot');
+
+      // header
+      const ths = document.createElement('tr');
+      ths.innerHTML = `<th class="round-num">Round</th>` + players.map(p => `<th>${escapeHtml(p)}</th>`).join('') + `<th style="width:40px"></th>`;
+      thead.appendChild(ths);
+
+      // rows
+      tbody.innerHTML = '';
+      g.rounds.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        tr.dataset.index = idx;
+        const roundNum = `<td class="round-num">${String(idx + 1).padStart(5, ' ')}</td>`;
+        const cells = players.map(p => {
+          const val = r[p] === undefined || r[p] === null ? '' : String(r[p]);
+          return `<td class="input-cell"><input type="text" class="cell" data-player="${escapeHtml(p)}" data-row="${idx}" value="${escapeHtml(val)}"/></td>`;
+        }).join('');
+        const remove = `<td><button class="remove-row" data-row="${idx}" title="Remove round">✖</button></td>`;
+        tr.innerHTML = roundNum + cells + remove;
+        tbody.appendChild(tr);
+      });
+
+      // footer: totals
+      const totals = players.map(p => {
+        let s = 0;
+        g.rounds.forEach(r => {
+          const v = r[p];
+          const n = (v === null || v === '' || v === undefined) ? 0 : Number(v) || 0;
+          s += n;
+        });
+        return s;
+      });
+      tfoot.innerHTML = `<tr class="total-row"><td class="round-num">TOTAL</td>` + totals.map(t => `<td>${String(t).padStart(5, ' ')}</td>`).join('') + `<td></td></tr>`;
+
+      // bindings: add round
+      document.getElementById('addRound').addEventListener('click', () => {
+        // create new round object with default 0s
+        const newR = {};
+        g.players.forEach(p => newR[p] = 0);
+        g.rounds.push(newR);
+        saveAll();
+        renderApp();
+        // focus the last new input
+        setTimeout(() => {
+          const last = document.querySelector(`input.cell[data-row="${g.rounds.length - 1}"]`);
+          last && last.focus();
+        }, 60);
+      });
+
+      // remove row
+      tbody.querySelectorAll('.remove-row').forEach(b => {
+        b.addEventListener('click', (e) => {
+          const index = Number(e.target.dataset.row);
+          confirmDialog('Remove round', `Remove round ${index + 1}?`, () => {
+            g.rounds.splice(index, 1);
+            saveAll();
+            renderApp();
+          });
+        });
+      });
+
+      // Improved input handling: allow free typing, commit on blur or Enter
+      tbody.querySelectorAll('input.cell').forEach(inp => {
+        // store last good value
+        inp.dataset.lastGood = inp.value;
+
+        // light validation while typing (reject non-digit except leading - and decimal point)
+        inp.addEventListener('input', (e) => {
+          const el = e.target;
+          // allow empty, -, digits and optional dot for decimals
+          const val = el.value;
+          if (/^-?$/.test(val) || /^-?\d*\.?\d*$/.test(val)) {
+            // acceptable while typing; remember as lastGood
+            el.dataset.lastGood = val;
+          } else {
+            // invalid: revert to last good value
+            el.value = el.dataset.lastGood || '';
+          }
+        });
+
+        // commit on blur
+        inp.addEventListener('blur', (e) => {
+          const el = e.target;
+          const row = Number(el.dataset.row);
+          const player = el.dataset.player;
+          const raw = el.value.trim();
+          if (raw === '') {
+            g.rounds[row][player] = '';
+          } else {
+            const num = Number(raw);
+            g.rounds[row][player] = Number.isFinite(num) ? num : raw;
+          }
+          saveAll();
+          // commit finished: re-render once
+          renderApp();
+        });
+
+        // commit if Enter pressed
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            inp.blur(); // triggers blur handler which commits and rerenders
+          }
+        });
+      });
+
+      // manage players (remove)
+      document.getElementById('managePlayers').addEventListener('click', () => {
+        const pls = g.players.map((p, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px"><div>${escapeHtml(p)}</div><div><button class="menu-btn remove-player" data-idx="${i}">Remove</button></div></div>`).join('');
+        confirmTitle.textContent = 'Players';
+        confirmText.innerHTML = `<div style="max-height:240px;overflow:auto">${pls}</div><div style="margin-top:8px"><small class="muted">Add players with the "+ Player" button at the top.</small></div>`;
+        modalConfirm.style.display = 'flex';
+        confirmOk.style.display = 'none';
+        confirmCancel.onclick = () => { modalConfirm.style.display = 'none'; confirmOk.style.display = 'inline-block'; };
+        // attach remove handlers by delegating after display
+        setTimeout(() => {
+          modalConfirm.querySelectorAll('.remove-player').forEach(b => {
+            b.addEventListener('click', (ev) => {
+              const idx = Number(ev.target.dataset.idx);
+              modalConfirm.style.display = 'none';
+              confirmOk.style.display = 'inline-block';
+              removePlayerFromGame(g, idx);
+            });
+          });
+        }, 60);
+      });
+    }
+
+    // ---------- Tally ----------
+    function renderTally(g) {
+      g.tally = g.tally || g.players.map(() => 0);
+      const players = g.players;
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="pill" id="managePlayersTally">Players</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div id="resetTally" class="pill">Reset</div>
+      </div>
+    </div>
+    <div class="tally-grid" id="tallyGrid"></div>
+  `;
+      gameArea.innerHTML = '';
+      gameArea.appendChild(wrap);
+      const grid = document.getElementById('tallyGrid');
+
+      // compute max sets among players to align columns
+      const setsCounts = players.map((p, idx) => Math.ceil((g.tally[idx] || 0)) / 5);
+      const maxSets = Math.max(1, ...setsCounts, 6); // ensure at least 6 visible sets as requested
+
+      // create columns (one per player)
+      grid.innerHTML = '';
+      players.forEach((p, idx) => {
+        const plWrap = document.createElement('div'); plWrap.className = 'tally-player card'; plWrap.style.padding = '8px';
+        plWrap.innerHTML = `<div class="tally-name">${escapeHtml(p)}</div><div class="tally-squares" id="player-${idx}"></div>
+      <div class="controls-row"><button class="menu-btn plus" data-idx="${idx}">＋</button><button class="menu-btn minus" data-idx="${idx}">－</button></div>`;
+        grid.appendChild(plWrap);
+
+        const container = plWrap.querySelector('.tally-squares');
+        // create sets rows
+        for (let s = 0; s < maxSets; s++) {
+          const sq = document.createElement('div');
+          sq.className = 'sq';
+          sq.dataset.set = s;
+          sq.dataset.player = idx;
+
+          // add 5 possible tally segments inside each square
+          const segLeft = document.createElement('div'); segLeft.className = 'seg seg-left hidden';
+          const segTop = document.createElement('div'); segTop.className = 'seg seg-top hidden';
+          const segRight = document.createElement('div'); segRight.className = 'seg seg-right hidden';
+          const segBottom = document.createElement('div'); segBottom.className = 'seg seg-bottom hidden';
+          const segDiag = document.createElement('div'); segDiag.className = 'seg seg-diag hidden';
+
+          sq.append(segLeft, segTop, segRight, segBottom, segDiag);
+          container.appendChild(sq);
+        }
+      });
+
+      // align vertical spacing: ensure all players have equal column heights by CSS (done by flex/align)
+      // fill according to scores
+      function refreshTallyDisplay() {
+        players.forEach((p, idx) => {
+          const score = g.tally[idx] || 0;
+          const sets = Math.floor(score / 5);
+          const extra = score % 5;
+          const playerContainer = document.getElementById('player-' + idx);
+          const sqs = playerContainer.querySelectorAll('.sq');
+          sqs.forEach((sq, i) => {
+            // map i to overall sequence: sequence number = setIndex*5 + segIndex
+            const segIndex = i;
+            if (segIndex < score) {
+              // determine which segment(s) to show in this cell: cell shows a single segment out of 5; but spec says segments sequence within square: left,top,right,bottom,diagonal. So each square is filled according to how many marks in that set.
+              // For our representation, we need to fill first 1..5 segments inside each square depending on (score - setIndex*5)
+              // But simpler: determine the set number and how many in that set are filled:
+              const setNum = Math.floor(i / 5);
+            }
+          });
+
+          // simpler approach: iterate over sets and fill cells
+          const container = playerContainer;
+          const cells = container.querySelectorAll('.sq');
+          // reset all
+          cells.forEach(c => {
+            c.querySelectorAll('.seg').forEach(s => s.classList.add('hidden'));
+          });
+          // fill
+          let remaining = score;
+          for (let s = 0; s < cells.length; s++) {
+            if (remaining <= 0) break;
+            // for this square at index s: fill up to 5 segments
+            const fillCount = Math.min(5, remaining);
+            const baseIndex = s;
+            const cell = cells[s]; // the first square for the set
+            // show segments: 1->left, 2->left+top, 3->left+top+right, 4->...bottom, 5->...diag
+            if (fillCount >= 1) cell.querySelector('.seg-left').classList.remove('hidden');
+            if (fillCount >= 2) cell.querySelector('.seg-top').classList.remove('hidden');
+            if (fillCount >= 3) cell.querySelector('.seg-right').classList.remove('hidden');
+            if (fillCount >= 4) cell.querySelector('.seg-bottom').classList.remove('hidden');
+            if (fillCount >= 5) cell.querySelector('.seg-diag').classList.remove('hidden');
+            remaining -= fillCount;
+          }
+        });
+      }
+
+      // plus/minus handlers
+      grid.querySelectorAll('.plus').forEach(b => {
+        b.addEventListener('click', (e) => {
+          const idx = Number(e.target.dataset.idx);
+          g.tally[idx] = (g.tally[idx] || 0) + 1;
+          saveAll();
+          renderApp(); // re-render to adjust number of sets if necessary
+        });
+      });
+      grid.querySelectorAll('.minus').forEach(b => {
+        b.addEventListener('click', (e) => {
+          const idx = Number(e.target.dataset.idx);
+          g.tally[idx] = Math.max(0, (g.tally[idx] || 0) - 1);
+          saveAll();
+          renderApp();
+        });
+      });
+      grid.querySelectorAll('.remove-player').forEach(b => {
+        b.addEventListener('click', (e) => {
+          const idx = Number(e.target.dataset.idx);
+          removePlayerFromGame(g, idx);
+        });
+      });
+
+      document.getElementById('resetTally').addEventListener('click', () => {
+        confirmDialog('Reset tally', 'Reset all tallies to zero?', () => {
+          g.tally = g.players.map(() => 0);
+          saveAll();
+          renderApp();
+        });
+      });
+
+      // manage players
+      document.getElementById('managePlayersTally').addEventListener('click', () => {
+        // reuse same behavior as Standard manage: show list for removing
+        const pls = g.players.map((p, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px"><div>${escapeHtml(p)}</div><div><button class="menu-btn remove-player" data-idx="${i}">Remove</button></div></div>`).join('');
+        confirmTitle.textContent = 'Players';
+        confirmText.innerHTML = `<div style="max-height:240px;overflow:auto">${pls}</div><div style="margin-top:8px"><small class="muted">Add players with the "+ Player" button at the top.</small></div>`;
+        modalConfirm.style.display = 'flex';
+        confirmOk.style.display = 'none';
+        confirmCancel.onclick = () => { modalConfirm.style.display = 'none'; confirmOk.style.display = 'inline-block'; };
+        setTimeout(() => {
+          modalConfirm.querySelectorAll('.remove-player').forEach(b => {
+            b.addEventListener('click', (ev) => {
+              const idx = Number(ev.target.dataset.idx);
+              modalConfirm.style.display = 'none';
+              confirmOk.style.display = 'inline-block';
+              removePlayerFromGame(g, idx);
+            });
+          });
+        }, 60);
+      });
+
+      // finally refresh display of segments
+      refreshTallyDisplay();
+    }
+
+    // ---------- Fixed ----------
+    function renderFixed(g) {
+      g.rows = g.rows || (templates[g.template] || []).map(l => ({ label: l, vals: [] }));
+      const players = g.players;
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="pill" id="managePlayersFixed">Players</div>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="fixedTable"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+  `;
+      gameArea.innerHTML = '';
+      gameArea.appendChild(wrap);
+      const table = document.getElementById('fixedTable');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      const tfoot = table.querySelector('tfoot');
+
+      // header
+      const ths = document.createElement('tr');
+      ths.innerHTML = `<th class="label-left"></th>` + players.map(p => `<th>${escapeHtml(p)}</th>`).join('') + `<th style="width:40px"></th>`;
+      thead.appendChild(ths);
+
+      // rows
+      tbody.innerHTML = '';
+      g.rows.forEach((row, ridx) => {
+        const tr = document.createElement('tr');
+        tr.dataset.row = ridx;
+        const labelCell = `<td class="label-left">${escapeHtml(row.label)}</td>`;
+        const cells = players.map((p, pidx) => {
+          const val = (row.vals[pidx] === null || row.vals[pidx] === undefined) ? '' : String(row.vals[pidx]);
+          return `<td class="input-cell"><input type="text" class="cell" data-row="${ridx}" data-col="${pidx}" value="${escapeHtml(val)}"/></td>`;
+        }).join('');
+        const spacer = `<td></td>`;
+        tr.innerHTML = labelCell + cells + spacer;
+        tbody.appendChild(tr);
+      });
+
+      // footer - totals
+      const totals = players.map((p, pidx) => {
+        let s = 0;
+        g.rows.forEach(r => {
+          const v = r.vals[pidx];
+          const n = (v === null || v === '' || v === undefined) ? 0 : Number(v) || 0;
+          s += n;
+        });
+        return s;
+      });
+      tfoot.innerHTML = `<tr class="total-row"><td class="label-left">TOTAL</td>` + totals.map(t => `<td>${String(t).padStart(5, ' ')}</td>`).join('') + `<td></td></tr>`;
+
+      // Improved input handling for Fixed: free typing, commit on blur/Enter
+      tbody.querySelectorAll('input.cell').forEach(inp => {
+        inp.dataset.lastGood = inp.value;
+
+        inp.addEventListener('input', (e) => {
+          const el = e.target;
+          const val = el.value;
+          if (/^-?$/.test(val) || /^-?\d*\.?\d*$/.test(val)) {
+            el.dataset.lastGood = val;
+          } else {
+            el.value = el.dataset.lastGood || '';
+          }
+        });
+
+        inp.addEventListener('blur', (e) => {
+          const el = e.target;
+          const r = Number(el.dataset.row);
+          const c = Number(el.dataset.col);
+          const raw = el.value.trim();
+          if (raw === '') g.rows[r].vals[c] = null;
+          else {
+            const num = Number(raw);
+            g.rows[r].vals[c] = Number.isFinite(num) ? num : raw;
+          }
+          saveAll();
+          renderApp();
+        });
+
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            inp.blur();
+          }
+        });
+      });
+
+      document.getElementById('managePlayersFixed').addEventListener('click', () => {
+        const pls = g.players.map((p, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px"><div>${escapeHtml(p)}</div><div><button class="menu-btn remove-player" data-idx="${i}">Remove</button></div></div>`).join('');
+        confirmTitle.textContent = 'Players';
+        confirmText.innerHTML = `<div style="max-height:240px;overflow:auto">${pls}</div><div style="margin-top:8px"><small class="muted">Add players with the "+ Player" button at the top.</small></div>`;
+        modalConfirm.style.display = 'flex';
+        confirmOk.style.display = 'none';
+        confirmCancel.onclick = () => { modalConfirm.style.display = 'none'; confirmOk.style.display = 'inline-block'; };
+        setTimeout(() => {
+          modalConfirm.querySelectorAll('.remove-player').forEach(b => {
+            b.addEventListener('click', (ev) => {
+              const idx = Number(ev.target.dataset.idx);
+              modalConfirm.style.display = 'none';
+              confirmOk.style.display = 'inline-block';
+              removePlayerFromGame(g, idx);
+            });
+          });
+        }, 60);
+      });
+    }
+
+    // Toggle dropdown
+    document.getElementById('menuBtn').addEventListener('click', e => {
+      const dropdown = document.getElementById('menuDropdown');
+      dropdown.classList.toggle('hidden');
+    });
+
+    // Hide menu when clicking outside
+    document.addEventListener('click', e => {
+      const wrap = document.querySelector('.menu-wrap');
+      if (!wrap.contains(e.target)) {
+        document.getElementById('menuDropdown').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('menuShare').addEventListener('click', async () => {
+      document.getElementById('menuDropdown').classList.add('hidden');
+      if (!activeGameId) { alert('Open a game first.'); return; }
+      const g = findGame(activeGameId);
+      const text = exportGameText(g);
+      try {
+        if (navigator.share) {
+          await navigator.share({ text: text, title: g.title });
+        } else {
+          await navigator.clipboard.writeText(text);
+          alert('Game text copied to clipboard.');
+        }
+      } catch (e) {
+        await navigator.clipboard.writeText(text);
+        alert('Copied to clipboard.');
+      }
+    });
+
+    document.getElementById('menuTemplates').addEventListener('click', () => {
+      document.getElementById('menuDropdown').classList.add('hidden');
+      openTemplatesModal();
+    });
+
+    // --------------------------- Sharing / Export ---------------------------
+    shareBtn.addEventListener('click', async () => {
+    });
+
+    function exportGameText(g) {
+      // header
+      const dateStr = formatDateISO(g.createdAt);
+      const hdr = g.type === 'Fixed' && g.template ? `${g.title}: ${dateStr} (${g.template})` : `${g.title}: ${dateStr}`;
+      // decide column widths: first col depends on type
+      // determine name width = max name length + 2, but at least 7
+      const names = g.players;
+      const nameWidth = Math.max(7, ...names.map(n => n.length + 2));
+      const roundColWidth = 7; // as required
+      function pad(s, w, align = 'right') {
+        s = String(s);
+        if (align === 'right') return s.padStart(w, ' ');
+        else return s.padEnd(w, ' ');
+      }
+      // build rows
+      let lines = [];
+      if (g.type === 'Standard') {
+        // header row with Round + names
+        const sep = '|' + '-'.repeat(roundColWidth) + '|' + names.map(() => '-'.repeat(nameWidth)).join('|') + '|';
+        lines.push(hdr);
+        lines.push(sep);
+        const headerRow = '|' + pad('Round', roundColWidth) + '|' + names.map(n => pad(n, nameWidth, 'right')).join('|') + '|';
+        lines.push(headerRow);
+        lines.push(sep);
+        const rounds = g.rounds || [];
+        for (let i = 0; i < rounds.length; i++) {
+          const r = rounds[i];
+          const cells = names.map(n => {
+            const v = r[n] === undefined || r[n] === '' || r[n] === null ? '' : String(r[n]);
+            return pad(v, nameWidth);
+          }).join('|');
+          lines.push('|' + pad(String(i + 1), roundColWidth) + '|' + cells + '|');
+        }
+        // pad up visually? not necessary
+        lines.push(sep);
+        const totals = names.map(n => {
+          let s = 0;
+          (g.rounds || []).forEach(r => {
+            const v = r[n];
+            const nval = (v === null || v === '' || v === undefined) ? 0 : Number(v) || 0;
+            s += nval;
+          });
+          return pad(String(s), nameWidth);
+        }).join('|');
+        lines.push('|' + pad('TOTAL', roundColWidth) + '|' + totals + '|');
+        lines.push(sep);
+      } else if (g.type === 'Tally') {
+        const sep = '|' + '-'.repeat(nameWidth) + '|' + names.map(() => '-'.repeat(nameWidth)).join('|') + '|';
+        lines.push(hdr);
+        lines.push(sep);
+        const header = '|' + pad('', nameWidth) + '|' + names.map(n => pad(n, nameWidth)).join('|') + '|';
+        lines.push(header);
+        lines.push(sep);
+        // single row TOTAL with numeric values
+        const totals = names.map((n, idx) => {
+          const v = (g.tally && g.tally[idx]) ? g.tally[idx] : 0;
+          return pad(String(v), nameWidth);
+        }).join('|');
+        lines.push('|' + pad('TOTAL', nameWidth) + '|' + totals + '|');
+        lines.push(sep);
+      } else if (g.type === 'Fixed') {
+        const sep = '|' + '-'.repeat(nameWidth) + '|' + names.map(() => '-'.repeat(nameWidth)).join('|') + '|';
+        lines.push(hdr);
+        lines.push(sep);
+        const header = '|' + pad('', nameWidth) + '|' + names.map(n => pad(n, nameWidth)).join('|') + '|';
+        lines.push(header);
+        lines.push(sep);
+        g.rows.forEach(r => {
+          const cells = names.map((n, idx) => {
+            const v = r.vals[idx] === null || r.vals[idx] === undefined ? '' : String(r.vals[idx]);
+            return pad(v, nameWidth);
+          }).join('|');
+          lines.push('|' + pad(r.label, nameWidth, 'left') + '|' + cells + '|');
+        });
+        lines.push(sep);
+        const totals = names.map((n, idx) => {
+          let s = 0;
+          g.rows.forEach(r => {
+            const v = r.vals[idx]; const tn = (v === null || v === '' || v === undefined) ? 0 : Number(v) || 0; s += tn;
+          });
+          return pad(String(s), nameWidth);
+        }).join('|');
+        lines.push('|' + pad('TOTAL', nameWidth, 'left') + '|' + totals + '|');
+        lines.push(sep);
+      } else {
+        lines.push(hdr);
+        lines.push('No export for this type');
+      }
+      return lines.join('\n');
+    }
+
+    // --------------------------- Helpers ---------------------------
+    function escapeHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+    // load initial active game if any
+    if (games.length > 0) {
+      setActiveGame(games[0].id);
+    } else {
+      // create a default new game placeholder but do not save to list until user creates
+      activeGameId = null;
+      renderApp();
+    }
+
+    // small keyboard shortcuts for convenience (desktop)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'g' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); openGamesModal(); }
+    });
+
+    // small autosave on visibility change
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveAll(); });
+
+  </script>
+</body>
+
+</html>
