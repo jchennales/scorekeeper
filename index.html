@@ -5,718 +5,39 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
   <meta name="theme-color" content="#00e0e0">
   <title>Scorekeeper</title>
-  <style>
-    :root {
-      --bg: #0f1724;
-      --card: #0b1220;
-      --muted: #9aa6b2;
-      --accent: #06b6d4;
-      --danger: #ef4444;
-      --glass: hsla(0, 0%, 100%, 0.03);
-      --surface: #0b1220;
-      --text: #e6eef6;
-      --round: 8px;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial
-    }
-
-    body,
-    html {
-      height: 100%;
-      margin: 0;
-      background: linear-gradient(180deg, #071423, #061220);
-      color: var(--text);
-      -webkit-font-smoothing: antialiased
-    }
-
-    .app {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 12px 16px 80px
-    }
-
-    header {
-      gap: 12px;
-      margin-bottom: 12px
-    }
-
-    .title {
-      font-weight: 700;
-      font-size: 18px;
-      display: flex;
-      gap: 8px;
-      align-items: center
-    }
-
-    .title button {
-      background: transparent;
-      border: 0;
-      color: var(--text);
-      font-weight: 700;
-      padding: 6px 10px;
-      border-radius: 10px
-    }
-
-    .menu-btn {
-      background: var(--glass);
-      padding: 6px 10px;
-      border-radius: 10px;
-      border: 1px solid hsla(0, 0%, 100%, .02)
-    }
-
-    .controls {
-      display: flex;
-      gap: 8px;
-      align-items: center
-    }
-
-    .btn {
-      background: linear-gradient(180deg, #0ea5a8, #06b6d4);
-      color: #022;
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 0;
-      font-weight: 600
-    }
-
-    .icon-btn {
-      background: transparent;
-      border: 0;
-      color: var(--muted);
-      padding: 8px;
-      border-radius: 8px
-    }
-
-    .card {
-      background: linear-gradient(180deg, hsla(0, 0%, 100%, .02), hsla(0, 0%, 100%, .01));
-      border-radius: 12px;
-      padding: 12px;
-      border: 1px solid hsla(0, 0%, 100%, .03);
-      box-shadow: 0 6px 18px rgba(2, 6, 23, .6)
-    }
-
-    .muted {
-      color: var(--muted);
-      font-size: 13px
-    }
-
-    .row {
-      display: flex;
-      gap: 8px;
-      align-items: center
-    }
-
-    .table-wrap {
-      overflow: auto;
-      background: transparent;
-      border-radius: 8px
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-      min-width: 320px
-    }
-
-    td,
-    th {
-      padding: 8px 6px;
-      text-align: right;
-      border-bottom: 1px dashed hsla(0, 0%, 100%, .03)
-    }
-
-    td:first-child,
-    th:first-child {
-      text-align: right;
-      font-family: monospace
-    }
-
-    th {
-      font-weight: 700;
-      color: var(--muted);
-      font-size: 13px
-    }
-
-    input.cell,
-    td.input-cell {
-      padding: 6px
-    }
-
-    input.cell {
-      width: 72px;
-      max-width: 100%;
-      border-radius: 8px;
-      border: 1px solid hsla(0, 0%, 100%, .03);
-      background: transparent;
-      color: var(--text);
-      text-align: right
-    }
-
-    .round-num {
-      width: 48px;
-      text-align: right;
-      color: var(--muted);
-      font-family: monospace
-    }
-
-    .remove-row {
-      background: transparent;
-      border: 0;
-      color: var(--danger);
-      cursor: pointer;
-      padding: 6px
-    }
-
-    .small {
-      font-size: 12px;
-      color: var(--muted)
-    }
-
-    .players-row th {
-      background: linear-gradient(180deg, hsla(0, 0%, 100%, .012), transparent);
-      position: sticky;
-      top: 0;
-      z-index: 2
-    }
-
-    .total-row {
-      font-weight: 600;
-      background: linear-gradient(180deg, hsla(0, 0%, 100%, .02), transparent)
-    }
-
-    .tally-grid {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.5rem 0;
-    }
-
-    .tally-player {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 0.5rem;
-    }
-
-    .tally-name {
-      font-weight: 300;
-      margin-bottom: 6px;
-      text-align: center
-    }
-
-    .tally-squares {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: center;
-      min-height: 96px;
-    }
-
-    .tally-row {
-      display: flex;
-      gap: 6px;
-      flex-wrap: nowrap
-    }
-
-    .controls-row {
-      display: flex;
-      gap: 6px;
-      margin-top: 8px
-    }
-
-    .pill {
-      background: hsla(0, 0%, 100%, .02);
-      padding: 6px 8px;
-      border-radius: 999px;
-      border: 1px solid hsla(0, 0%, 100%, .03);
-      cursor: pointer;
-      font-size: 13px
-    }
-
-    .modal-back {
-      position: fixed;
-      inset: 0;
-      background: rgba(2, 6, 23, .6);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      z-index: 50
-    }
-
-    .modal {
-      background: linear-gradient(180deg, #071321, #06101a);
-      padding: 12px;
-      border-radius: 12px;
-      max-width: 560px;
-      width: 100%;
-      border: 1px solid hsla(0, 0%, 100%, .04)
-    }
-
-    .modal h3 {
-      margin: 0 0 8px
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 8px
-    }
-
-    .text-input {
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid hsla(0, 0%, 100%, .03);
-      background: transparent;
-      color: var(--text)
-    }
-
-    .grid-cols {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 8px
-    }
-
-    footer {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      padding: 10px;
-      background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .3));
-      display: flex;
-      justify-content: center
-    }
-
-    .footer-row {
-      max-width: 900px;
-      width: 100%;
-      display: flex;
-      gap: 8px;
-      justify-content: space-between;
-      padding: 16px 16px
-    }
-
-    .meta {
-      font-size: 12px;
-      color: var(--muted)
-    }
-
-    @media (max-width:520px) {
-      .cell {
-        width: 58px
-      }
-
-      .tally-player {
-        min-width: 72px
-      }
-
-      .title {
-        font-size: 16px
-      }
-    }
-
-    /*
-    .sq {
-      position: relative;
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 0.25rem;
-      margin: 0.25rem 0;
-      background: hsla(0, 0%, 100%, 0.03);
-      overflow: hidden;
-    }
-    */
-    .sq {
-      position: relative;
-      width: 42px;
-      height: 42px;
-      background-color: #1c1f26; /* faint contrast to background */
-      border-radius: 6px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
-      transition: background-color 0.25s ease, box-shadow 0.25s ease;
-    }    
-    
-    /* default segment = faint neutral line */
-    .seg {
-      position: absolute;
-      background: hsla(0, 0%, 100%, 0.07);
-      transition: background 0.15s ease;
-    }
-
-    /* active segment = accent color */
-    .seg:not(.hidden) {
-      background: var(--accent);
-    }
-
-    /* each border side */
-    .seg-left {
-      top: 0;
-      left: 0;
-      width: 2px;
-      height: 100%;
-    }
-
-    .seg-top {
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 2px;
-    }
-
-    .seg-right {
-      top: 0;
-      right: 0;
-      width: 2px;
-      height: 100%;
-    }
-
-    .seg-bottom {
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 2px;
-    }
-
-    /* diagonal tally slash */
-    .seg-diag {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background: none !important;
-    }
-
-    .seg-diag::before {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 140%;
-      height: 2px;
-      background: var(--accent);
-      transform: translate(-50%, -50%) rotate(-45deg);
-    }
-
-    .hidden {
-      display: none
-    }
-
-    .danger {
-      color: var(--danger)
-    }
-
-    .muted-2 {
-      color: hsla(0, 0%, 100%, .06)
-    }
-
-    .label-left {
-      text-align: left;
-      padding-left: 8px
-    }
-
-    .template-list {
-      max-height: 220px;
-      overflow: auto;
-      padding: 6px;
-      border-radius: 8px;
-      border: 1px dashed hsla(0, 0%, 100%, .02)
-    }
-
-    .flex-center {
-      display: flex;
-      align-items: center;
-      gap: 8px
-    }
-
-    :root {
-      --bg-color: #10141b;
-      --card-bg: #1b222d;
-      --accent: #00bcd4;
-      --accent-light: #26d4ed;
-      --text-color: #e8f0f9;
-      --text-dim: #aab7c7;
-      --border-color: #2c3a4b;
-      --danger: #e74c3c;
-      --radius: 12px;
-      --shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-      font-family: system-ui, -apple-system, Roboto, sans-serif
-    }
-
-    body {
-      background: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--card-bg);
-      padding: .6rem 1rem;
-      box-shadow: var(--shadow);
-      position: sticky;
-      top: 0;
-      z-index: 10
-    }
-
-    header h1 {
-      font-size: 1.1rem;
-      color: var(--accent);
-      margin: 0
-    }
-
-    button,
-    input[type=button],
-    input[type=submit] {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      padding: .45rem .8rem;
-      font-size: .9rem;
-      cursor: pointer;
-      transition: background .2s, transform .1s;
-      box-shadow: var(--shadow)
-    }
-
-    button:hover {
-      background: var(--accent-light);
-      transform: scale(1.03)
-    }
-
-    button:disabled {
-      background: #555;
-      color: #888;
-      cursor: default;
-      box-shadow: none
-    }
-
-    .icon-btn {
-      width: 32px;
-      height: 32px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      background: var(--accent);
-      color: #fff;
-      font-size: 1.1rem;
-      margin: 0 .25rem
-    }
-
-    .icon-btn:hover {
-      background: var(--accent-light)
-    }
-
-    .card {
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 1rem;
-      margin: 1rem
-    }
-
-    .table {
-      width: 100%;
-      border-collapse: collapse
-    }
-
-    .table td,
-    .table th {
-      padding: .4rem;
-      border-bottom: 1px solid var(--border-color);
-      text-align: center
-    }
-
-    input[type=number],
-    input[type=text] {
-      background: var(--bg-color);
-      color: var(--text-color);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      width: 100%;
-      text-align: center;
-      font-size: 1rem;
-      padding: .3rem
-    }
-
-    input[type=number]:focus,
-    input[type=text]:focus {
-      border-color: var(--accent);
-      outline: none
-    }
-
-    .footer-buttons {
-      display: flex;
-      justify-content: center;
-      gap: .5rem;
-      padding: .75rem;
-      flex-wrap: wrap
-    }
-
-    .footer-buttons button {
-      flex: 1 1 45%;
-      min-width: 120px
-    }
-
-    /* --- new/ongoing game modal layout --- */
-    .new-game-controls {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    /* individual row */
-    .new-game-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      width: 100%;
-    }
-
-    .new-game-row input,
-    .new-game-row select {
-      flex: 1 1 0;
-    }
-
-    #newGameTemplate {
-      flex: 1 1 0;
-    }
-
-    #createGameBtn {
-      flex: 0 0 auto;
-      margin-left: auto;
-    }
-
-    .new-game-row button.btn {
-      flex-shrink: 0;
-    }
-
-    /* --- Responsive layout tweak for wider screens --- */
-    @media (min-width: 600px) {
-      .new-game-controls {
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-
-      .new-game-row {
-        flex: 1 1 auto;
-        gap: 8px;
-      }
-
-      /* Title + Type inline */
-      .new-game-row:first-child {
-        flex: 1 1 60%;
-      }
-
-      /* Template + Create inline */
-      .new-game-row:last-child {
-        flex: 1 1 40%;
-        justify-content: flex-end;
-      }
-    }
-
-    /* --- dropdown dark mode + cyan accent --- */
-    select.text-input {
-      background-color: #1c1f26;
-      color: #e5e5e5;
-      border: 1px solid #2b3038;
-      border-radius: 6px;
-      padding: 6px 8px;
-      transition: border-color 0.2s ease, background-color 0.2s ease;
-      appearance: none;
-    }
-
-    select.text-input:hover,
-    select.text-input:focus {
-      border-color: #00e0ff;
-      outline: none;
-    }
-
-    select.text-input option {
-      background-color: #1c1f26;
-      color: #e5e5e5;
-    }
-
-    select.text-input option:hover,
-    select.text-input option:checked {
-      background-color: #00e0ff !important;
-      color: #0a0f14 !important;
-    }
-
-    .menu-wrap {
-      position: relative;
-    }
-
-    .menu-dropdown {
-      position: absolute;
-      right: 0;
-      top: 110%;
-      background: var(--card-bg, #1e1f23);
-      border: 1px solid var(--border-color, #2a2b30);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      display: flex;
-      flex-direction: column;
-      min-width: 120px;
-      z-index: 100;
-    }
-
-    .menu-dropdown.hidden {
-      display: none;
-    }
-
-    .menu-item {
-      padding: 8px 12px;
-      cursor: pointer;
-      color: var(--text-color, #ddd);
-    }
-
-    .menu-item:hover {
-      background: var(--accent-bg, #0bb);
-      color: #fff;
-    }
-  </style>
 </head>
 
 <body>
   <div class="app">
     <header>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-weight:800" id="titleEditable">New Game</div>
+          <div class="muted small" id="createdAt">—</div>
+        </div>
+      </div>
       <div class="title">
-        <button id="gamesMenuBtn" class="menu-btn" title="Open games menu">🏷️ <span id="currentGameTitle">New
+        <button id="gamesMenuBtn" class="menu-btn" title="Open games menu" hidden>🏷️ <span id="currentGameTitle">New
             Game</span></button>
       </div>
       <div class="controls">
-        <button id="addPlayerBtn" class="btn" title="Add player">➕ Player</button>
         <div class="menu-wrap">
           <button id="menuBtn" class="btn" style="font-size:1.2em;">☰</button>
           <div id="menuDropdown" class="menu-dropdown hidden">
+            <div class="menu-item" id="menuGames">Games</div>
+            <div class="menu-item" id="menuPlayers">Players</div>
+            <div class="menu-item" id="menuReset">Reset</div>
             <div class="menu-item" id="menuShare">Share</div>
             <div class="menu-item" id="menuTemplates">Templates</div>
           </div>
         </div>
-        <!--<button id="shareBtn" class="btn" title="Share / Export">Share</button>-->
       </div>
     </header>
 
-    <section id="gameCard" class="card">
-      <div class="row" style="justify-content:space-between;margin-bottom:8px">
-        <div>
-          <div style="font-weight:800" id="titleEditable">New Game</div>
-          <div class="muted small" id="createdAt">Created: —</div>
-        </div>
-        <div class="muted small" id="playersCount">0 players</div>
-      </div>
-
+    <section id="gameCard" class="not-card">
       <div id="gameArea">
         <!-- Dynamic content -->
         <div class="muted">No game selected. Create one from the menu.</div>
@@ -780,7 +101,7 @@
       <div id="confirmText" class="muted small" style="margin-bottom:12px"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button id="confirmCancel" class="menu-btn">Cancel</button>
-        <button id="confirmOk" class="btn danger">OK</button>
+        <button id="confirmOk" class="btn">OK</button>
       </div>
     </div>
   </div>
@@ -851,6 +172,7 @@
     const createGameBtn = document.getElementById('createGameBtn');
     const newGameTemplate = document.getElementById('newGameTemplate');
 
+    const menuGames = document.getElementById('menuGames');
     const modalTemplates = document.getElementById('modalTemplates');
     const menuTemplates = document.getElementById('menuTemplates');
     const closeTpl = document.getElementById('closeTpl');
@@ -859,11 +181,11 @@
     const tplLabels = document.getElementById('tplLabels');
     const saveTpl = document.getElementById('saveTpl');
 
-    const addPlayerBtn = document.getElementById('addPlayerBtn');
+    const menuPlayers = document.getElementById('menuPlayers');
+    const menuReset = document.getElementById('menuReset');
     const menuShare = document.getElementById('menuShare');
     const titleEditable = document.getElementById('titleEditable');
     const createdAtEl = document.getElementById('createdAt');
-    const playersCount = document.getElementById('playersCount');
     const currentGameTitle = document.getElementById('currentGameTitle');
     const gameArea = document.getElementById('gameArea');
     const templatesSelector = newGameTemplate;
@@ -937,19 +259,8 @@
       gamesListDiv.querySelectorAll('.btn-open').forEach(b => b.addEventListener('click', e => { const id = e.target.dataset.id; setActiveGame(id); closeModal(modalGames); }));
       gamesListDiv.querySelectorAll('.btn-clear').forEach(b => b.addEventListener('click', e => {
         const id = e.target.dataset.id;
-        confirmDialog('Clear scores', 'This will reset scores and update the creation date for the selected game. Continue?', () => {
-          const g = findGame(id);
-          if (!g) return;
-          g.createdAt = formatDateForStore();
-          if (g.type === 'Standard') g.rounds = [];
-          if (g.type === 'Tally') g.tally = [];
-          if (g.type === 'Fixed') {
-            g.rows.forEach(r => r.vals = []);
-          }
-          saveAll();
-          renderGamesList();
-          if (activeGameId === id) renderApp();
-        });
+        resetGame(id);
+        renderGamesList();
       }));
       gamesListDiv.querySelectorAll('.btn-delete').forEach(b => b.addEventListener('click', e => {
         const id = e.target.dataset.id;
@@ -961,6 +272,23 @@
           renderApp();
         });
       }));
+    }
+
+    function resetGame(id) {
+        confirmOk.style.display = 'inline-block';
+        confirmCancel.style.display = 'inline-block';
+        confirmDialog('Clear scores', 'This will reset scores and update the creation date for the selected game. Continue?', () => {
+          const g = findGame(id);
+          if (!g) return;
+          g.createdAt = formatDateForStore();
+          if (g.type === 'Standard') g.rounds = [];
+          if (g.type === 'Tally') g.tally = [];
+          if (g.type === 'Fixed') {
+            g.rows.forEach(r => r.vals = []);
+          }
+          saveAll();
+          if (activeGameId === id) renderApp();
+        });
     }
 
     function populateTemplatesSelector() {
@@ -980,6 +308,7 @@
       modalTemplates.style.display = 'flex';
       renderTemplates();
     }
+    
     function renderTemplates() {
       templatesContainer.innerHTML = '';
       Object.entries(templates).forEach(([name, labels]) => {
@@ -1043,14 +372,12 @@
         currentGameTitle.textContent = 'New Game';
         titleEditable.textContent = 'No game selected';
         createdAtEl.textContent = 'Created: —';
-        playersCount.textContent = '0 players';
         gameArea.innerHTML = `<div class="muted">Open the <strong>Games</strong> menu to create a new game or open an existing one.</div>`;
         return;
       }
       currentGameTitle.textContent = g.title;
       titleEditable.textContent = g.title;
-      createdAtEl.textContent = 'Created: ' + formatDateISO(g.createdAt) + (g.type === 'Fixed' && g.template ? ' (' + g.template + ')' : '');
-      playersCount.textContent = `${g.players.length} player${g.players.length === 1 ? '' : 's'}`;
+      createdAtEl.textContent = formatDateISO(g.createdAt) + (g.type === 'Fixed' && g.template ? ' (' + g.template + ')' : '');
 
       // allow renaming title inline
       titleEditable.contentEditable = true;
@@ -1068,16 +395,6 @@
       else gameArea.innerHTML = '<div class="muted">Unsupported type</div>';
       saveAll();
     }
-
-    // Add player flow: shows a small prompt to type name
-    addPlayerBtn.addEventListener('click', () => {
-      if (!activeGameId) { alert('Open or create a game first (Games menu).'); return; }
-      const g = findGame(activeGameId);
-      const name = prompt('Player name.');
-      if (!name) return;
-      addPlayerToGame(g, name.trim());
-      renderApp();
-    });
 
     function addPlayerToGame(game, name) {
       if (!name) return;
@@ -1116,21 +433,45 @@
       });
     }
 
+    function openPlayersModal(g) {
+      const pls = g.players.map((p, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px"><div>${escapeHtml(p)}</div><div><button class="menu-btn remove-player" data-idx="${i}">Remove</button></div></div>`).join('');
+      confirmTitle.textContent = 'Players';
+      confirmText.innerHTML = `<div style="max-height:240px;overflow:auto">${pls}</div><div style="margin-top:8px"><button id="addPlayerBtn" class="btn" title="Add player">➕ Player</button></div>`;
+      modalConfirm.style.display = 'flex';
+      confirmCancel.style.display = 'none';
+      confirmOk.onclick = () => { modalConfirm.style.display = 'none'; confirmOk.style.display = 'inline-block'; };
+
+      // Add player flow: shows a small prompt to type name
+      const addPlayerBtn = document.getElementById('addPlayerBtn');
+      addPlayerBtn.addEventListener('click', () => {
+        if (!activeGameId) { alert('Open or create a game first (Games menu).'); return; }
+        const g = findGame(activeGameId);
+        const name = prompt('Player name.');
+        if (!name) return;
+        addPlayerToGame(g, name.trim());
+        renderApp();
+        openPlayersModal(g);
+      });
+
+      // attach remove handlers by delegating after display
+      confirmText.querySelectorAll('.remove-player').forEach(b => {
+        b.addEventListener('click', (ev) => {
+          const idx = Number(ev.target.dataset.idx);
+          modalConfirm.style.display = 'none';
+          confirmOk.style.display = 'inline-block';
+          removePlayerFromGame(g, idx);
+        });
+      });
+    }
+
+
     // ---------- Standard ----------
     function renderStandard(g) {
       // ensure rounds array exists
       g.rounds = g.rounds || [];
       const players = g.players;
       const table = document.createElement('div');
-      table.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="addRound" class="btn">Add round</button>
-        <div class="pill" id="managePlayers">Players</div>
-      </div>
-    </div>
-    <div class="table-wrap"><table id="stdTable"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
-  `;
+      table.innerHTML = `<div class="table-wrap"><table id="stdTable"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>`;
       gameArea.innerHTML = '';
       gameArea.appendChild(table);
 
@@ -1140,7 +481,7 @@
 
       // header
       const ths = document.createElement('tr');
-      ths.innerHTML = `<th class="round-num">Round</th>` + players.map(p => `<th>${escapeHtml(p)}</th>`).join('') + `<th style="width:40px"></th>`;
+      ths.innerHTML = `<th class="round-num">#</th>` + players.map(p => `<th>${escapeHtml(p)}</th>`).join('') + `<th style="width:40px"></th>`;
       thead.appendChild(ths);
 
       // rows
@@ -1153,7 +494,7 @@
           const val = r[p] === undefined || r[p] === null ? '' : String(r[p]);
           return `<td class="input-cell"><input type="text" class="cell" data-player="${escapeHtml(p)}" data-row="${idx}" value="${escapeHtml(val)}"/></td>`;
         }).join('');
-        const remove = `<td><button class="remove-row" data-row="${idx}" title="Remove round">✖</button></td>`;
+        const remove = `<td><button class="remove-row" data-row="${idx}" title="Remove round">-</button></td>`;
         tr.innerHTML = roundNum + cells + remove;
         tbody.appendChild(tr);
       });
@@ -1168,10 +509,10 @@
         });
         return s;
       });
-      tfoot.innerHTML = `<tr class="total-row"><td class="round-num">TOTAL</td>` + totals.map(t => `<td>${String(t).padStart(5, ' ')}</td>`).join('') + `<td></td></tr>`;
+      tfoot.innerHTML = `<tr class="total-row"><td class="round-num">T</td>` + totals.map(t => `<td>${String(t).padStart(5, ' ')}</td>`).join('') + `<td><button id="addRowButton" class="add-row" title="Add round">+</button></td></tr>`;
 
       // bindings: add round
-      document.getElementById('addRound').addEventListener('click', () => {
+      document.getElementById('addRowButton').addEventListener('click', () => {
         // create new round object with default 0s
         const newR = {};
         g.players.forEach(p => newR[p] = 0);
@@ -1242,26 +583,9 @@
         });
       });
 
-      // manage players (remove)
-      document.getElementById('managePlayers').addEventListener('click', () => {
-        const pls = g.players.map((p, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px"><div>${escapeHtml(p)}</div><div><button class="menu-btn remove-player" data-idx="${i}">Remove</button></div></div>`).join('');
-        confirmTitle.textContent = 'Players';
-        confirmText.innerHTML = `<div style="max-height:240px;overflow:auto">${pls}</div><div style="margin-top:8px"><small class="muted">Add players with the "+ Player" button at the top.</small></div>`;
-        modalConfirm.style.display = 'flex';
-        confirmOk.style.display = 'none';
-        confirmCancel.onclick = () => { modalConfirm.style.display = 'none'; confirmOk.style.display = 'inline-block'; };
-        // attach remove handlers by delegating after display
-        setTimeout(() => {
-          modalConfirm.querySelectorAll('.remove-player').forEach(b => {
-            b.addEventListener('click', (ev) => {
-              const idx = Number(ev.target.dataset.idx);
-              modalConfirm.style.display = 'none';
-              confirmOk.style.display = 'inline-block';
-              removePlayerFromGame(g, idx);
-            });
-          });
-        }, 60);
-      });
+      menuPlayers.addEventListener('click', () => { openPlayersModal(g); });
+      menuReset.addEventListener('click', () => { resetGame(g.id); });
+
     }
 
     // ---------- Tally ----------
@@ -1269,17 +593,7 @@
       g.tally = g.tally || g.players.map(() => 0);
       const players = g.players;
       const wrap = document.createElement('div');
-      wrap.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="display:flex;gap:8px;align-items:center">
-        <div class="pill" id="managePlayersTally">Players</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <div id="resetTally" class="pill">Reset</div>
-      </div>
-    </div>
-    <div class="tally-grid" id="tallyGrid"></div>
-  `;
+      wrap.innerHTML = `<div class="tally-grid" id="tallyGrid"></div>`;
       gameArea.innerHTML = '';
       gameArea.appendChild(wrap);
       const grid = document.getElementById('tallyGrid');
@@ -1388,41 +702,9 @@
           renderApp();
         });
       });
-      grid.querySelectorAll('.remove-player').forEach(b => {
-        b.addEventListener('click', (e) => {
-          const idx = Number(e.target.dataset.idx);
-          removePlayerFromGame(g, idx);
-        });
-      });
 
-      document.getElementById('resetTally').addEventListener('click', () => {
-        confirmDialog('Reset tally', 'Reset all tallies to zero?', () => {
-          g.tally = g.players.map(() => 0);
-          saveAll();
-          renderApp();
-        });
-      });
-
-      // manage players
-      document.getElementById('managePlayersTally').addEventListener('click', () => {
-        // reuse same behavior as Standard manage: show list for removing
-        const pls = g.players.map((p, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px"><div>${escapeHtml(p)}</div><div><button class="menu-btn remove-player" data-idx="${i}">Remove</button></div></div>`).join('');
-        confirmTitle.textContent = 'Players';
-        confirmText.innerHTML = `<div style="max-height:240px;overflow:auto">${pls}</div><div style="margin-top:8px"><small class="muted">Add players with the "+ Player" button at the top.</small></div>`;
-        modalConfirm.style.display = 'flex';
-        confirmOk.style.display = 'none';
-        confirmCancel.onclick = () => { modalConfirm.style.display = 'none'; confirmOk.style.display = 'inline-block'; };
-        setTimeout(() => {
-          modalConfirm.querySelectorAll('.remove-player').forEach(b => {
-            b.addEventListener('click', (ev) => {
-              const idx = Number(ev.target.dataset.idx);
-              modalConfirm.style.display = 'none';
-              confirmOk.style.display = 'inline-block';
-              removePlayerFromGame(g, idx);
-            });
-          });
-        }, 60);
-      });
+      menuPlayers.addEventListener('click', () => { openPlayersModal(g); });
+      menuReset.addEventListener('click', () => { resetGame(g.id); });
 
       // finally refresh display of segments
       refreshTallyDisplay();
@@ -1433,14 +715,7 @@
       g.rows = g.rows || (templates[g.template] || []).map(l => ({ label: l, vals: [] }));
       const players = g.players;
       const wrap = document.createElement('div');
-      wrap.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="display:flex;gap:8px;align-items:center">
-        <div class="pill" id="managePlayersFixed">Players</div>
-      </div>
-    </div>
-    <div class="table-wrap"><table id="fixedTable"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
-  `;
+      wrap.innerHTML = `<div class="table-wrap"><table id="fixedTable"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>`;
       gameArea.innerHTML = '';
       gameArea.appendChild(wrap);
       const table = document.getElementById('fixedTable');
@@ -1478,7 +753,7 @@
         });
         return s;
       });
-      tfoot.innerHTML = `<tr class="total-row"><td class="label-left">TOTAL</td>` + totals.map(t => `<td>${String(t).padStart(5, ' ')}</td>`).join('') + `<td></td></tr>`;
+      tfoot.innerHTML = `<tr class="total-row"><td class="label-left">T</td>` + totals.map(t => `<td>${String(t).padStart(5, ' ')}</td>`).join('') + `<td></td></tr>`;
 
       // Improved input handling for Fixed: free typing, commit on blur/Enter
       tbody.querySelectorAll('input.cell').forEach(inp => {
@@ -1516,24 +791,9 @@
         });
       });
 
-      document.getElementById('managePlayersFixed').addEventListener('click', () => {
-        const pls = g.players.map((p, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px"><div>${escapeHtml(p)}</div><div><button class="menu-btn remove-player" data-idx="${i}">Remove</button></div></div>`).join('');
-        confirmTitle.textContent = 'Players';
-        confirmText.innerHTML = `<div style="max-height:240px;overflow:auto">${pls}</div><div style="margin-top:8px"><small class="muted">Add players with the "+ Player" button at the top.</small></div>`;
-        modalConfirm.style.display = 'flex';
-        confirmOk.style.display = 'none';
-        confirmCancel.onclick = () => { modalConfirm.style.display = 'none'; confirmOk.style.display = 'inline-block'; };
-        setTimeout(() => {
-          modalConfirm.querySelectorAll('.remove-player').forEach(b => {
-            b.addEventListener('click', (ev) => {
-              const idx = Number(ev.target.dataset.idx);
-              modalConfirm.style.display = 'none';
-              confirmOk.style.display = 'inline-block';
-              removePlayerFromGame(g, idx);
-            });
-          });
-        }, 60);
-      });
+      menuPlayers.addEventListener('click', () => { openPlayersModal(g); });
+      menuReset.addEventListener('click', () => { resetGame(g.id); });
+
     }
 
     // Toggle dropdown
@@ -1568,14 +828,15 @@
       }
     });
 
-    document.getElementById('menuTemplates').addEventListener('click', () => {
+    menuTemplates.addEventListener('click', () => {
       document.getElementById('menuDropdown').classList.add('hidden');
       openTemplatesModal();
     });
 
+    menuGames.addEventListener('click', () => { openGamesModal(); });
+
+    
     // --------------------------- Sharing / Export ---------------------------
-    shareBtn.addEventListener('click', async () => {
-    });
 
     function exportGameText(g) {
       // header
