@@ -4,26 +4,39 @@ const ASSETS = [
   './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
 ];
 
-// install
+// INSTALL
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      for (const url of ASSETS) {
+        try {
+          await cache.add(url);
+        } catch (err) {
+          console.warn('SW: failed to cache', url, err);
+        }
+      }
+    })()
   );
 });
 
-// activate
+// ACTIVATE
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+      await self.clients.claim();
+    })()
   );
 });
 
-// fetch
+// FETCH
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(resp => resp || fetch(event.request))

@@ -11,7 +11,7 @@
 </head>
 
 <body>
-  <div class="app">
+  <div class="app" id="app">
     <header>
       <div class="row" style="justify-content:space-between;margin-bottom:8px">
         <div>
@@ -30,7 +30,15 @@
             <div class="menu-item" id="menuGames">Games</div>
             <div class="menu-item" id="menuPlayers">Players</div>
             <div class="menu-item" id="menuReset">Reset</div>
-            <div class="menu-item" id="menuShare">Share</div>
+            <div class="menu-item has-submenu" id="menuShare">
+              Share
+              <div class="menu-dropdown submenu hidden" id="submenuShare">
+                <div class="menu-item" data-share="image">Image</div>
+                <div class="menu-item" data-share="fixed">Text</div>
+                <div class="menu-item" data-share="markdown">Markdown</div>
+                <div class="menu-item" data-share="csv">CSV</div>
+              </div>
+            </div>
             <div class="menu-item" id="menuTemplates">Templates</div>
           </div>
         </div>
@@ -106,6 +114,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
 
     // --------------------------- PWA ---------------------------
@@ -117,6 +126,7 @@
 
     // --------------------------- Persistence ---------------------------
     const STORAGE_KEYS = {
+      active: 'sk_active_v1',
       games: 'sk_games_v1',
       templates: 'sk_templates_v1'
     };
@@ -130,6 +140,7 @@
     }
     function saveJSON(key, obj) { localStorage.setItem(key, JSON.stringify(obj)); }
 
+    let activeGameId = loadJSON(STORAGE_KEYS.active, null);
     let games = loadJSON(STORAGE_KEYS.games, []);
     let templates = loadJSON(STORAGE_KEYS.templates, {
       "Generala": ['1', '2', '3', '4', '5', '6', 'E', 'F', 'P', 'G', 'DG'],
@@ -143,6 +154,7 @@
     function saveAll() {
       saveJSON(STORAGE_KEYS.games, games);
       saveJSON(STORAGE_KEYS.templates, templates);
+      saveJSON(STORAGE_KEYS.active, activeGameId);
     }
 
     // --------------------------- Utilities ---------------------------
@@ -154,7 +166,6 @@
     function formatDateForStore() { return (new Date()).toISOString(); }
 
     // find active game index
-    let activeGameId = null;
     function findGame(id) { return games.find(g => g.id === id); }
     function setActiveGame(id) {
       activeGameId = id;
@@ -184,6 +195,7 @@
     const menuPlayers = document.getElementById('menuPlayers');
     const menuReset = document.getElementById('menuReset');
     const menuShare = document.getElementById('menuShare');
+    const submenuShare = document.getElementById("submenuShare");
     const titleEditable = document.getElementById('titleEditable');
     const createdAtEl = document.getElementById('createdAt');
     const currentGameTitle = document.getElementById('currentGameTitle');
@@ -256,7 +268,7 @@
         gamesListDiv.appendChild(el);
       });
       // bind
-      gamesListDiv.querySelectorAll('.btn-open').forEach(b => b.addEventListener('click', e => { const id = e.target.dataset.id; setActiveGame(id); closeModal(modalGames); }));
+      gamesListDiv.querySelectorAll('.btn-open').forEach(b => b.addEventListener('click', e => { const id = e.target.dataset.id; setActiveGame(id); saveAll(); closeModal(modalGames); }));
       gamesListDiv.querySelectorAll('.btn-clear').forEach(b => b.addEventListener('click', e => {
         const id = e.target.dataset.id;
         resetGame(id);
@@ -275,20 +287,20 @@
     }
 
     function resetGame(id) {
-        confirmOk.style.display = 'inline-block';
-        confirmCancel.style.display = 'inline-block';
-        confirmDialog('Clear scores', 'This will reset scores and update the creation date for the selected game. Continue?', () => {
-          const g = findGame(id);
-          if (!g) return;
-          g.createdAt = formatDateForStore();
-          if (g.type === 'Standard') g.rounds = [];
-          if (g.type === 'Tally') g.tally = [];
-          if (g.type === 'Fixed') {
-            g.rows.forEach(r => r.vals = []);
-          }
-          saveAll();
-          if (activeGameId === id) renderApp();
-        });
+      confirmOk.style.display = 'inline-block';
+      confirmCancel.style.display = 'inline-block';
+      confirmDialog('Clear scores', 'This will reset scores and update the creation date for the selected game. Continue?', () => {
+        const g = findGame(id);
+        if (!g) return;
+        g.createdAt = formatDateForStore();
+        if (g.type === 'Standard') g.rounds = [];
+        if (g.type === 'Tally') g.tally = [];
+        if (g.type === 'Fixed') {
+          g.rows.forEach(r => r.vals = []);
+        }
+        saveAll();
+        if (activeGameId === id) renderApp();
+      });
     }
 
     function populateTemplatesSelector() {
@@ -308,7 +320,7 @@
       modalTemplates.style.display = 'flex';
       renderTemplates();
     }
-    
+
     function renderTemplates() {
       templatesContainer.innerHTML = '';
       Object.entries(templates).forEach(([name, labels]) => {
@@ -810,21 +822,18 @@
       }
     });
 
-    document.getElementById('menuShare').addEventListener('click', async () => {
-      document.getElementById('menuDropdown').classList.add('hidden');
-      if (!activeGameId) { alert('Open a game first.'); return; }
-      const g = findGame(activeGameId);
-      const text = exportGameText(g);
-      try {
-        if (navigator.share) {
-          await navigator.share({ text: text, title: g.title });
-        } else {
-          await navigator.clipboard.writeText(text);
-          alert('Game text copied to clipboard.');
-        }
-      } catch (e) {
-        await navigator.clipboard.writeText(text);
-        alert('Copied to clipboard.');
+    menuShare.addEventListener("click", (e) => {
+      e.stopPropagation();
+      submenuShare.classList.toggle("hidden");
+    });
+
+    submenuShare.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (e.target.dataset.share) {
+        const format = e.target.dataset.share;
+        submenuShare.classList.add("hidden");
+        menuDropdown.classList.add("hidden");
+        shareAction(format);
       }
     });
 
@@ -835,105 +844,302 @@
 
     menuGames.addEventListener('click', () => { openGamesModal(); });
 
-    
     // --------------------------- Sharing / Export ---------------------------
 
-    function exportGameText(g) {
-      // header
-      const dateStr = formatDateISO(g.createdAt);
-      const hdr = g.type === 'Fixed' && g.template ? `${g.title}: ${dateStr} (${g.template})` : `${g.title}: ${dateStr}`;
-      // decide column widths: first col depends on type
-      // determine name width = max name length + 2, but at least 7
-      const names = g.players;
-      const nameWidth = Math.max(7, ...names.map(n => n.length + 2));
-      const roundColWidth = 7; // as required
-      function pad(s, w, align = 'right') {
-        s = String(s);
-        if (align === 'right') return s.padStart(w, ' ');
-        else return s.padEnd(w, ' ');
-      }
-      // build rows
-      let lines = [];
-      if (g.type === 'Standard') {
-        // header row with Round + names
-        const sep = '|' + '-'.repeat(roundColWidth) + '|' + names.map(() => '-'.repeat(nameWidth)).join('|') + '|';
-        lines.push(hdr);
-        lines.push(sep);
-        const headerRow = '|' + pad('Round', roundColWidth) + '|' + names.map(n => pad(n, nameWidth, 'right')).join('|') + '|';
-        lines.push(headerRow);
-        lines.push(sep);
-        const rounds = g.rounds || [];
-        for (let i = 0; i < rounds.length; i++) {
-          const r = rounds[i];
-          const cells = names.map(n => {
-            const v = r[n] === undefined || r[n] === '' || r[n] === null ? '' : String(r[n]);
-            return pad(v, nameWidth);
-          }).join('|');
-          lines.push('|' + pad(String(i + 1), roundColWidth) + '|' + cells + '|');
+    async function shareAction(format = "fixed") {
+      document.getElementById('menuDropdown').classList.add('hidden');
+      if (!activeGameId) { alert('Open a game first.'); return; }
+      const g = findGame(activeGameId);
+
+      if (format === "image") {
+        const blob = await exportGameAsImage();
+        shareOrDownloadPng(blob);
+      } else {
+        const text = exportGameText(g, 6, format);
+
+        try {
+          if (navigator.share) {
+            await navigator.share({ text: text, title: g.title });
+          } else {
+            await navigator.clipboard.writeText(text);
+            alert('Game text copied to clipboard.');
+          }
+        } catch (e) {
+          await navigator.clipboard.writeText(text);
+          alert('Copied to clipboard.');
         }
-        // pad up visually? not necessary
-        lines.push(sep);
+
+      }
+
+    }
+
+    function exportGameText(g, maxNameLen = 6, format = "fixed") {
+
+      const labelsHeader = ".";
+      const dateStr = formatDateISO(g.createdAt);
+      const hdr =
+        g.type === "Fixed" && g.template
+          ? `${g.title}: ${dateStr} (${g.template})`
+          : `${g.title}: ${dateStr}`;
+
+      const names = g.players.map(n =>
+        n.length > maxNameLen ? n.slice(0, maxNameLen) : n
+      );
+
+      const firstColWidth = g.type === "Standard" ? 2 : 2;
+      const nameWidth = Math.max(...names.map(n => n.length));
+
+      const isCSV = format === "csv";
+      const isMarkdown = format === "markdown";
+      const isFixed = format === "fixed";
+
+      function pad(s, w, align = "right") {
+        s = String(s);
+        return align === "right" ? s.padStart(w, " ") : s.padEnd(w, " ");
+      }
+
+      function sepLine(colCount) {
+        if (isCSV) return null;
+        return (
+          "-".repeat(firstColWidth) +
+          "|" +
+          Array(colCount).fill("-".repeat(nameWidth)).join("|")
+        );
+      }
+
+      const lines = [];
+      lines.push(hdr);
+
+      // === STANDARD GAME TYPE ===
+      if (g.type === "Standard") {
+        const rounds = g.rounds || [];
+
+        if (isFixed && sepLine(names.length)) lines.push(sepLine(names.length));
+
+        // Header row
+        if (isCSV) {
+          lines.push([labelsHeader, ...names].join(","));
+        } else {
+          const headerRow =
+            pad(labelsHeader, firstColWidth, "right") + "|" + names.map(n => pad(n, nameWidth)).join("|");
+          lines.push(headerRow);
+          if (sepLine(names.length)) lines.push(sepLine(names.length));
+        }
+
+        // Round rows
+        rounds.forEach((r, i) => {
+          if (isCSV) {
+            const row = [i + 1, ...names.map(n => r[n] ?? "")].join(",");
+            lines.push(row);
+          } else {
+            const label = pad(String(i + 1), firstColWidth, "left");
+            const cells = names
+              .map(n => pad(r[n] ?? "", nameWidth))
+              .join("|");
+            lines.push(label + "|" + cells);
+          }
+        });
+
+        // Totals
         const totals = names.map(n => {
           let s = 0;
-          (g.rounds || []).forEach(r => {
+          rounds.forEach(r => {
             const v = r[n];
-            const nval = (v === null || v === '' || v === undefined) ? 0 : Number(v) || 0;
-            s += nval;
+            s += v === null || v === "" || v === undefined ? 0 : Number(v) || 0;
           });
-          return pad(String(s), nameWidth);
-        }).join('|');
-        lines.push('|' + pad('TOTAL', roundColWidth) + '|' + totals + '|');
-        lines.push(sep);
-      } else if (g.type === 'Tally') {
-        const sep = '|' + '-'.repeat(nameWidth) + '|' + names.map(() => '-'.repeat(nameWidth)).join('|') + '|';
-        lines.push(hdr);
-        lines.push(sep);
-        const header = '|' + pad('', nameWidth) + '|' + names.map(n => pad(n, nameWidth)).join('|') + '|';
-        lines.push(header);
-        lines.push(sep);
-        // single row TOTAL with numeric values
-        const totals = names.map((n, idx) => {
-          const v = (g.tally && g.tally[idx]) ? g.tally[idx] : 0;
-          return pad(String(v), nameWidth);
-        }).join('|');
-        lines.push('|' + pad('TOTAL', nameWidth) + '|' + totals + '|');
-        lines.push(sep);
-      } else if (g.type === 'Fixed') {
-        const sep = '|' + '-'.repeat(nameWidth) + '|' + names.map(() => '-'.repeat(nameWidth)).join('|') + '|';
-        lines.push(hdr);
-        lines.push(sep);
-        const header = '|' + pad('', nameWidth) + '|' + names.map(n => pad(n, nameWidth)).join('|') + '|';
-        lines.push(header);
-        lines.push(sep);
-        g.rows.forEach(r => {
-          const cells = names.map((n, idx) => {
-            const v = r.vals[idx] === null || r.vals[idx] === undefined ? '' : String(r.vals[idx]);
-            return pad(v, nameWidth);
-          }).join('|');
-          lines.push('|' + pad(r.label, nameWidth, 'left') + '|' + cells + '|');
+          return s;
         });
-        lines.push(sep);
-        const totals = names.map((n, idx) => {
+
+        if (isCSV) {
+          lines.push(["T", ...totals].join(","));
+        } else if (isMarkdown) {
+          lines.push(`**T**|${totals.map(v => `**${v}**`).join("|")}`);
+        } else {
+          if (sepLine(names.length)) lines.push(sepLine(names.length));
+          lines.push(
+            pad("T", firstColWidth, "left") +
+            "|" +
+            totals.map(v => pad(String(v), nameWidth)).join("|")
+          );
+          if (sepLine(names.length)) lines.push(sepLine(names.length));
+        }
+      }
+
+      // === TALLY GAME TYPE ===
+      else if (g.type === "Tally") {
+        if (isFixed && sepLine(names.length)) lines.push(sepLine(names.length));
+
+        if (isCSV) {
+          lines.push([labelsHeader, ...names].join(","));
+        } else {
+          const header =
+            pad(labelsHeader, firstColWidth) + "|" + names.map(n => pad(n, nameWidth)).join("|");
+          lines.push(header);
+          if (sepLine(names.length)) lines.push(sepLine(names.length));
+        }
+
+        const totals = names.map((_, idx) => (g.tally && g.tally[idx]) || 0);
+
+        if (isCSV) {
+          lines.push(["T", ...totals].join(","));
+        } else if (isMarkdown) {
+          lines.push(`**T**|${totals.map(v => `**${v}**`).join("|")}`);
+        } else {
+          lines.push(
+            pad("T", firstColWidth, "left") +
+            "|" +
+            totals.map(v => pad(String(v), nameWidth)).join("|")
+          );
+          if (sepLine(names.length)) lines.push(sepLine(names.length));
+        }
+      }
+
+      // === FIXED GAME TYPE ===
+      else if (g.type === "Fixed") {
+        if (isFixed && sepLine(names.length)) lines.push(sepLine(names.length));
+
+        if (isCSV) {
+          lines.push([labelsHeader, ...names].join(","));
+        } else {
+          const headerRow =
+            pad(labelsHeader, firstColWidth, "right") +
+            "|" +
+            names
+              .map(n => {
+                const padLeft = Math.floor((nameWidth - n.length) / 2);
+                const padRight = nameWidth - n.length - padLeft;
+                return " ".repeat(padLeft) + n + " ".repeat(padRight);
+              })
+              .join("|");
+          lines.push(headerRow);
+          if (sepLine(names.length)) lines.push(sepLine(names.length));
+        }
+
+        g.rows.forEach(r => {
+          if (isCSV) {
+            const row = [r.label, ...r.vals].join(",");
+            lines.push(row);
+          } else {
+            const label = pad(r.label, firstColWidth, "left");
+            const cells = r.vals
+              .map(v => pad(v === null || v === undefined ? "" : String(v), nameWidth))
+              .join("|");
+            lines.push(label + "|" + cells);
+          }
+        });
+
+        const totals = names.map((_, idx) => {
           let s = 0;
           g.rows.forEach(r => {
-            const v = r.vals[idx]; const tn = (v === null || v === '' || v === undefined) ? 0 : Number(v) || 0; s += tn;
+            const v = r.vals[idx];
+            s += v === null || v === "" || v === undefined ? 0 : Number(v) || 0;
           });
-          return pad(String(s), nameWidth);
-        }).join('|');
-        lines.push('|' + pad('TOTAL', nameWidth, 'left') + '|' + totals + '|');
-        lines.push(sep);
-      } else {
-        lines.push(hdr);
-        lines.push('No export for this type');
+          return s;
+        });
+
+        if (isCSV) {
+          lines.push(["T", ...totals].join(","));
+        } else if (isMarkdown) {
+          lines.push(`**T**|${totals.map(v => `**${v}**`).join("|")}`);
+        } else {
+          if (sepLine(names.length)) lines.push(sepLine(names.length));
+          lines.push(
+            pad("T", firstColWidth, "left") +
+            "|" +
+            totals.map(v => pad(String(v), nameWidth)).join("|")
+          );
+          if (sepLine(names.length)) lines.push(sepLine(names.length));
+        }
       }
-      return lines.join('\n');
+
+      // === OTHER TYPES ===
+      else {
+        lines.push("No export for this type");
+      }
+
+      // Wrap in backticks for "fixed" format
+      let out = lines.join("\n");
+      if (isFixed) out = "```\n" + out + "\n```";
+
+      return out;
+    }
+
+    async function exportGameAsImage(selector = "#app", hideSelectors = [".button", ".btn", ".menu-btn", ".add-row", ".remove-row"]) {
+      const container = document.querySelector(selector);
+      if (!container) throw new Error(`Container not found: ${selector}`);
+
+      // Hide elements before capture
+      const hidden = [];
+      hideSelectors.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+          hidden.push([el, el.style.display]);
+          el.style.display = "none";
+        });
+      });
+
+      // Use html2canvas to render full content
+      const canvas = await html2canvas(container, {
+        backgroundColor: null,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: -window.scrollY, // capture full view if scrolled
+        windowWidth: document.documentElement.scrollWidth,
+        windowHeight: document.documentElement.scrollHeight,
+      });
+
+      // Restore hidden elements
+      hidden.forEach(([el, prev]) => (el.style.display = prev));
+
+      // Return PNG blob
+      return new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    }
+
+
+    async function shareOrDownloadPng(pngBlob, filename = 'game.png') {
+      try {
+        // Check if Web Share API supports file sharing
+        if (navigator.canShare && navigator.canShare({ files: [new File([pngBlob], filename, { type: 'image/png' })] })) {
+          const file = new File([pngBlob], filename, { type: 'image/png' });
+          await navigator.share({
+            title: 'Game Export',
+            text: 'Here is the game export image.',
+            files: [file],
+          });
+          // console.log('Shared successfully!');
+        } else {
+          // Fallback: trigger download
+          const url = URL.createObjectURL(pngBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          // console.log('Downloaded as file:', filename);
+        }
+      } catch (err) {
+        console.error('Error sharing or downloading PNG:', err);
+        // Always provide fallback on error
+        const url = URL.createObjectURL(pngBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     }
 
     // --------------------------- Helpers ---------------------------
     function escapeHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
     // load initial active game if any
-    if (games.length > 0) {
+    if (activeGameId) {
+      setActiveGame(activeGameId);
+    }
+    else if (games.length > 0) {
       setActiveGame(games[0].id);
     } else {
       // create a default new game placeholder but do not save to list until user creates

@@ -26,6 +26,7 @@ html {
 }
 
 .app {
+    background: linear-gradient(180deg, #071423, #061220);
     max-width: 980px;
     margin: 0 auto;
     padding: 12px 16px 80px
@@ -592,8 +593,8 @@ input[type="text"]:focus {
 #createGameBtn {
     flex: 0 0 auto;
     margin-left: auto
-    
 }
+
 .new-game-row button.btn {
     flex-shrink: 0
 }
@@ -677,4 +678,15 @@ select.text-input option:hover {
 .menu-item:hover {
     background: var(--accent-bg, #0bb);
     color: #fff
+}
+
+.has-submenu {
+    position: relative;
+}
+
+.submenu {
+    position: absolute;
+    top: 0;
+    left: 20%;
+    z-index: 11;
 }
