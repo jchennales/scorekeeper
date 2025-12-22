@@ -256,27 +256,36 @@
         el.className = 'card';
         el.style.marginBottom = '8px';
         el.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <div style="padding-right:8px;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          <div style="font-weight:700">${escapeHtml(g.title)}</div>
-          <div class="muted small">${g.type === 'Fixed' && g.template ? escapeHtml(g.template) : g.type} • ${formatDateISO(g.createdAt)}</div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button class="menu-btn btn-open" data-id="${g.id}">Open</button>
-          <button class="menu-btn btn-clear" data-id="${g.id}">Clear</button>
-          <button class="menu-btn btn-delete" data-id="${g.id}">Delete</button>
-        </div>
-      </div>
-    `;
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <div style="padding-right:8px;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              <div style="font-weight:700">${escapeHtml(g.title)}</div>
+              <div class="muted small">${g.type === 'Fixed' && g.template ? escapeHtml(g.template) : g.type} • ${formatDateISO(g.createdAt)}</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="menu-btn btn-open" data-id="${g.id}">Open</button>
+              <button class="menu-btn btn-clone" data-id="${g.id}">Clone</button>
+              <button class="menu-btn btn-delete" data-id="${g.id}">Delete</button>
+            </div>
+          </div>
+        `;
         gamesListDiv.appendChild(el);
       });
-      // bind
-      gamesListDiv.querySelectorAll('.btn-open').forEach(b => b.addEventListener('click', e => { const id = e.target.dataset.id; setActiveGame(id); saveAll(); closeModal(modalGames); }));
-      gamesListDiv.querySelectorAll('.btn-clear').forEach(b => b.addEventListener('click', e => {
-        const id = e.target.dataset.id;
-        resetGame(id);
-        renderGamesList();
+
+      // Bind Open
+      gamesListDiv.querySelectorAll('.btn-open').forEach(b => b.addEventListener('click', e => { 
+        const id = e.target.dataset.id; 
+        setActiveGame(id); 
+        saveAll(); 
+        closeModal(modalGames); 
       }));
+
+      // Bind Clone (Replaces Clear)
+      gamesListDiv.querySelectorAll('.btn-clone').forEach(b => b.addEventListener('click', e => {
+        const id = e.target.dataset.id;
+        cloneGame(id);
+      }));
+
+      // Bind Delete
       gamesListDiv.querySelectorAll('.btn-delete').forEach(b => b.addEventListener('click', e => {
         const id = e.target.dataset.id;
         confirmDialog('Delete game', 'Permanently delete this game?', () => {
@@ -287,6 +296,54 @@
           renderApp();
         });
       }));
+    }
+
+    function cloneGame(sourceId) {
+      const source = games.find(x => x.id === sourceId);
+      if (!source) return;
+
+      // Prompt the user for a name, pre-filling with the source title
+      const newName = prompt("Name for the cloned game:", source.title);
+      
+      // If user cancels or provides an empty string, abort
+      if (newName === null || newName.trim() === "") return;
+
+      // Create deep copy of the game shell and players
+      const newGame = {
+        id: 'g' + Date.now(),
+        title: newName.trim(),
+        type: source.type,
+        createdAt: formatDateForStore ? formatDateForStore() : new Date().toISOString(),
+        // Deep copy players to ensure they are independent objects
+        players: JSON.parse(JSON.stringify(source.players))
+      };
+
+      // Handle template property for Fixed games
+      if (source.template) newGame.template = source.template;
+
+      // Initialize empty scores based on type
+      if (source.type === 'Standard') {
+        newGame.rounds = [];
+      } 
+      else if (source.type === 'Tally') {
+        newGame.tally = newGame.players.map(() => 0);
+      } 
+      else if (source.type === 'Fixed') {
+        // Copy row structure but clear values to null (empty)
+        newGame.rows = source.rows.map(r => ({
+          label: r.label,
+          vals: newGame.players.map(() => null)
+        }));
+      }
+
+      // Save to the start of the array
+      games.unshift(newGame);
+      saveAll();
+      
+      // Update the modal list and switch to the new game
+      renderGamesList();
+      setActiveGame(newGame.id);
+      renderApp();
     }
 
     function resetGame(id) {
