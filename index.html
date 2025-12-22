@@ -140,12 +140,15 @@
     }
     function saveJSON(key, obj) { localStorage.setItem(key, JSON.stringify(obj)); }
 
+    const DEFAULT_TEMPLATES = {
+      "Generala": ['1', '2', '3', '4', '5', '6', 'E', 'F', 'P', 'G', 'DG'],
+      "Carioca": ['2P', '1P1E', '2E', '3P', '2P1E', '1P2E', '3E', '4P'],
+      "Yatzee": ['1', '2', '3', '4', '5', '6', 'TK', 'FK', 'FH', 'SS', 'LS', 'YZ', 'CH', 'Y2']
+    };
+
     let activeGameId = loadJSON(STORAGE_KEYS.active, null);
     let games = loadJSON(STORAGE_KEYS.games, []);
-    let templates = loadJSON(STORAGE_KEYS.templates, {
-      "Generala": ['1', '2', '3', '4', '5', '6', 'E', 'F', 'P', 'G', 'DG'],
-      "Yatzee": ['1', '2', '3', '4', '5', '6', 'TK', 'FK', 'FH', 'SS', 'LS', 'YZ', 'CH', 'Y2']
-    });
+    let templates = loadJSON(STORAGE_KEYS.templates, DEFAULT_TEMPLATES);
 
     // ensure sane structure
     if (!Array.isArray(games)) games = [];
@@ -293,11 +296,20 @@
         const g = findGame(id);
         if (!g) return;
         g.createdAt = formatDateForStore();
+        
         if (g.type === 'Standard') g.rounds = [];
-        if (g.type === 'Tally') g.tally = [];
-        if (g.type === 'Fixed') {
-          g.rows.forEach(r => r.vals = []);
+        
+        if (g.type === 'Tally') {
+          g.tally = g.players.map(() => 0);
         }
+        
+        if (g.type === 'Fixed') {
+          // Set all player values in every row to null (empty)
+          g.rows.forEach(r => {
+            r.vals = g.players.map(() => null);
+          });
+        }
+        
         saveAll();
         if (activeGameId === id) renderApp();
       });
@@ -317,40 +329,110 @@
 
     // Templates modal
     function openTemplatesModal() {
-      modalTemplates.style.display = 'flex';
+      confirmTitle.textContent = 'Templates';
       renderTemplates();
+      modalConfirm.style.display = 'flex';
+      confirmCancel.style.display = 'none';
+      confirmOk.onclick = () => { modalConfirm.style.display = 'none'; };
     }
 
     function renderTemplates() {
-      templatesContainer.innerHTML = '';
-      Object.entries(templates).forEach(([name, labels]) => {
-        const wrap = document.createElement('div');
-        wrap.style.display = 'flex'; wrap.style.justifyContent = 'space-between'; wrap.style.alignItems = 'center'; wrap.style.padding = '6px';
-        const left = document.createElement('div');
-        left.innerHTML = `<div style="font-weight:700">${escapeHtml(name)}</div><div class="small muted">${escapeHtml(labels.join(', '))}</div>`;
-        const right = document.createElement('div');
-        right.innerHTML = `<button class="menu-btn edit-tpl" data-name="${escapeHtml(name)}">Edit</button> <button class="menu-btn del-tpl" data-name="${escapeHtml(name)}">Delete</button>`;
-        wrap.appendChild(left); wrap.appendChild(right);
-        templatesContainer.appendChild(wrap);
+      const keys = Object.keys(templates);
+      
+      const listHtml = keys.map(k => `
+        <div style="padding:10px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+          <div style="flex-grow:1; overflow:hidden; margin-right:8px;">
+            <div style="font-size:1rem; font-weight:bold;">${escapeHtml(k)}</div>
+            <div class="muted" style="font-size:0.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${templates[k].join(', ')}
+            </div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="menu-btn edit-template" data-name="${escapeHtml(k)}">Edit</button>
+            <button class="menu-btn remove-template" data-name="${escapeHtml(k)}" style="color:var(--danger)">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      confirmText.innerHTML = `
+        <div style="max-height:300px; overflow-y:auto; margin-bottom:12px; border:1px solid var(--border-color); border-radius:8px;">
+          ${listHtml || '<p class="muted" style="padding:10px">No templates found.</p>'}
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <button id="addNewTemplateBtn" class="btn" style="width:100%">➕ Add New Template</button>
+          <button id="restoreDefaultsBtn" class="btn" style="width:100%; background:var(--muted); color:var(--bg-color); font-size:0.9rem;">🔄 Restore Defaults</button>
+        </div>
+      `;
+
+      // --- ADD NEW TEMPLATE ---
+      document.getElementById('addNewTemplateBtn').onclick = () => {
+        const name = prompt("Enter template name:");
+        if (name && name.trim()) {
+          const trimmedName = name.trim();
+          if (templates[trimmedName]) {
+            alert("A template with that name already exists.");
+          } else {
+            templates[trimmedName] = []; // Start empty
+            saveJSON(STORAGE_KEYS.templates, templates);
+            renderTemplates();
+          }
+        }
+      };
+
+      // --- EDIT TEMPLATE (Text-Mode per entity) ---
+      confirmText.querySelectorAll('.edit-template').forEach(btn => {
+        btn.onclick = () => {
+          const name = btn.dataset.name;
+          const currentRows = templates[name].join(', ');
+          
+          confirmText.innerHTML = `
+            <div style="margin-bottom:10px;">
+              <label>Editing Rows for: <strong>${escapeHtml(name)}</strong></label>
+              <textarea id="rowsEditor" class="text-input" 
+                        style="width:100%; height:140px; margin-top:8px; font-family:monospace;" 
+                        placeholder="Enter labels separated by commas (e.g. 1, 2, 3, Total)">${escapeHtml(currentRows)}</textarea>
+              <p class="small muted" style="margin-top:4px;">Separate items with commas.</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="saveRowBtn" class="btn" style="flex:1">Save</button>
+              <button id="cancelRowBtn" class="btn" style="flex:1; background:var(--muted);">Back</button>
+            </div>
+          `;
+
+          document.getElementById('saveRowBtn').onclick = () => {
+            const input = document.getElementById('rowsEditor').value;
+            // Split by comma, trim whitespace, remove empty strings
+            templates[name] = input.split(',').map(s => s.trim()).filter(s => s !== "");
+            saveJSON(STORAGE_KEYS.templates, templates);
+            renderTemplates();
+          };
+
+          document.getElementById('cancelRowBtn').onclick = () => renderTemplates();
+        };
       });
-      templatesContainer.querySelectorAll('.edit-tpl').forEach(b => {
-        b.addEventListener('click', (e) => {
-          const nm = e.target.dataset.name;
-          tplName.value = nm;
-          tplLabels.value = templates[nm].join(',');
-        });
-      });
-      templatesContainer.querySelectorAll('.del-tpl').forEach(b => {
-        b.addEventListener('click', (e) => {
-          const nm = e.target.dataset.name;
-          confirmDialog('Delete template', `Delete template "${nm}"?`, () => {
-            delete templates[nm];
-            saveAll();
+
+      // --- REMOVE TEMPLATE ---
+      confirmText.querySelectorAll('.remove-template').forEach(btn => {
+        btn.onclick = () => {
+          const name = btn.dataset.name;
+          confirmDialog('Delete Template', `Delete "${name}"?`, () => {
+            delete templates[name];
+            saveJSON(STORAGE_KEYS.templates, templates);
             renderTemplates();
           });
-        });
+        };
       });
+
+      // --- RESTORE DEFAULTS ---
+      document.getElementById('restoreDefaultsBtn').onclick = () => {
+        confirmDialog('Restore Defaults', 'This will reset templates to the original list. Custom ones will be lost. Continue?', () => {
+          templates = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+          saveJSON(STORAGE_KEYS.templates, templates);
+          renderTemplates();
+        });
+      };
     }
+
     saveTpl.addEventListener('click', () => {
       const name = tplName.value.trim();
       const labels = tplLabels.value.split(',').map(s => s.trim()).filter(Boolean);
@@ -379,6 +461,7 @@
 
     // --------------------------- Game area rendering & interactions ---------------------------
     function renderApp() {
+
       const g = activeGameId ? findGame(activeGameId) : null;
       if (!g) {
         currentGameTitle.textContent = 'New Game';
@@ -387,6 +470,10 @@
         gameArea.innerHTML = `<div class="muted">Open the <strong>Games</strong> menu to create a new game or open an existing one.</div>`;
         return;
       }
+
+      // Migration: Convert old string players to objects
+      g.players = g.players.map(p => typeof p === 'string' ? { name: p, hidden: false } : p);
+
       currentGameTitle.textContent = g.title;
       titleEditable.textContent = g.title;
       createdAtEl.textContent = formatDateISO(g.createdAt) + (g.type === 'Fixed' && g.template ? ' (' + g.template + ')' : '');
@@ -410,16 +497,16 @@
 
     function addPlayerToGame(game, name) {
       if (!name) return;
-      game.players.push(name);
-      // update per-type structures
+      const newPlayer = { name: name.trim(), hidden: false };
+      game.players.push(newPlayer);
+      
       if (game.type === 'Standard') {
-        // for existing rounds, append 0 as default for new player
-        game.rounds.forEach(r => { r[name] = (r[name] === undefined ? 0 : r[name]); });
+        game.rounds.forEach(r => { r[newPlayer.name] = 0; });
       } else if (game.type === 'Tally') {
         if (!game.tally) game.tally = [];
         game.tally.push(0);
       } else if (game.type === 'Fixed') {
-        // ensure each row has same length vals
+        // Add a null entry for the new player in every existing row
         game.rows.forEach(r => r.vals.push(null));
       }
       saveAll();
@@ -446,86 +533,69 @@
     }
 
     function openPlayersModal(g) {
+      g.players = g.players.map(p => typeof p === 'string' ? { name: p, hidden: false } : p);
+
       const pls = g.players.map((p, i) => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid var(--border-color)">
-          <div class="player-name-edit" data-idx="${i}" style="cursor:pointer; flex-grow:1;" title="Click to rename">
-            ${escapeHtml(p)}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid var(--border-color)">
+          <div class="player-name-edit ${p.hidden ? 'player-hidden' : ''}" data-idx="${i}" 
+              style="cursor:pointer; flex-grow:1; font-size: .9rem; font-weight: 400;">
+            ${p.hidden ? '👁️‍🗨️' : '👤'} ${escapeHtml(p.name)}
           </div>
-          <div>
+          <div style="display:flex; gap:4px;">
+            <button class="menu-btn toggle-hide" data-idx="${i}">${p.hidden ? 'Show' : 'Hide'}</button>
             <button class="menu-btn remove-player" data-idx="${i}">Remove</button>
           </div>
         </div>`).join('');
 
       confirmTitle.textContent = 'Players';
-      confirmText.innerHTML = `
-        <div style="max-height:240px;overflow:auto">${pls}</div>
-        <div style="margin-top:12px; display:flex; gap:8px;">
-          <button id="addPlayerBtn" class="btn" style="width:100%">➕ Add Player</button>
-        </div>`;
-      
+      confirmText.innerHTML = `<div style="max-height:240px;overflow:auto">${pls}</div><div style="margin-top:12px"><button id="addPlayerBtn" class="btn" style="width:100%">➕ Add Player</button></div>`;
       modalConfirm.style.display = 'flex';
       confirmCancel.style.display = 'none';
-      confirmOk.style.display = 'inline-block';
       confirmOk.onclick = () => { modalConfirm.style.display = 'none'; };
-
-      // --- Event Listeners ---
 
       // Rename Logic
       confirmText.querySelectorAll('.player-name-edit').forEach(el => {
-        el.addEventListener('click', (ev) => {
+        el.onclick = () => {
           const idx = Number(el.dataset.idx);
-          const oldName = g.players[idx];
-          const newName = prompt('Rename player:', oldName);
-          
-          if (newName && newName.trim() !== "" && newName !== oldName) {
-            const trimmedName = newName.trim();
-            
-            // Update name in the players array
-            const oldPlayerName = g.players[idx];
-            g.players[idx] = trimmedName;
-
-            // Update Standard game rounds keys if necessary
+          const newNm = prompt('Rename player:', g.players[idx].name);
+          if (newNm && newNm.trim() && newNm !== g.players[idx].name) {
+            const oldName = g.players[idx].name;
+            g.players[idx].name = newNm.trim();
             if (g.type === 'Standard') {
-              g.rounds.forEach(r => {
-                if (r.hasOwnProperty(oldPlayerName)) {
-                  r[trimmedName] = r[oldPlayerName];
-                  delete r[oldPlayerName];
-                }
-              });
+              g.rounds.forEach(r => { r[g.players[idx].name] = r[oldName]; delete r[oldName]; });
             }
-
-            saveAll();
-            renderApp();
-            openPlayersModal(g); // Refresh the modal
+            saveAll(); renderApp(); openPlayersModal(g);
           }
-        });
+        };
       });
 
-      // Add Player Logic
-      const addPlayerBtn = document.getElementById('addPlayerBtn');
-      addPlayerBtn.addEventListener('click', () => {
-        const name = prompt('Player name:');
-        if (!name) return;
-        addPlayerToGame(g, name.trim());
-        renderApp();
-        openPlayersModal(g);
+      // Toggle Hide Logic
+      confirmText.querySelectorAll('.toggle-hide').forEach(b => {
+        b.onclick = (e) => {
+          const idx = Number(e.target.dataset.idx);
+          g.players[idx].hidden = !g.players[idx].hidden;
+          saveAll(); renderApp(); openPlayersModal(g);
+        };
       });
 
-      // Remove Player Logic
+      // Add/Remove Logic
+      document.getElementById('addPlayerBtn').onclick = () => {
+        const n = prompt('Name:'); if (n) { addPlayerToGame(g, n); renderApp(); openPlayersModal(g); }
+      };
       confirmText.querySelectorAll('.remove-player').forEach(b => {
-        b.addEventListener('click', (ev) => {
-          const idx = Number(ev.target.dataset.idx);
-          modalConfirm.style.display = 'none';
-          removePlayerFromGame(g, idx);
-        });
+        b.onclick = (e) => { modalConfirm.style.display = 'none'; removePlayerFromGame(g, Number(e.target.dataset.idx)); };
       });
     }
 
     // ---------- Standard ----------
     function renderStandard(g) {
-      // ensure rounds array exists
       g.rounds = g.rounds || [];
-      const players = g.players;
+      // Migration for safety
+      g.players = g.players.map(p => typeof p === 'string' ? { name: p, hidden: false } : p);
+      
+      // Filter for visible players
+      const visiblePlayers = g.players.filter(p => !p.hidden);
+      
       const table = document.createElement('div');
       table.innerHTML = `<div class="table-wrap"><table id="stdTable"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>`;
       gameArea.innerHTML = '';
@@ -535,321 +605,210 @@
       const tbody = table.querySelector('tbody');
       const tfoot = table.querySelector('tfoot');
 
-      // header
+      // Header
       const ths = document.createElement('tr');
-      ths.innerHTML = `<th class="round-num">#</th>` + players.map(p => `<th>${escapeHtml(p)}</th>`).join('') + `<th style="width:40px"></th>`;
+      ths.innerHTML = `<th class="round-num">#</th>` + 
+        visiblePlayers.map(p => `<th>${escapeHtml(p.name)}</th>`).join('') + 
+        `<th style="width:40px"></th>`;
       thead.appendChild(ths);
 
-      // rows
+      // Rows
       tbody.innerHTML = '';
       g.rounds.forEach((r, idx) => {
         const tr = document.createElement('tr');
-        tr.dataset.index = idx;
         const roundNum = `<td class="round-num">${String(idx + 1).padStart(5, ' ')}</td>`;
-        const cells = players.map(p => {
-          const val = r[p] === undefined || r[p] === null ? '' : String(r[p]);
-          return `<td class="input-cell"><input type="text" class="cell" data-player="${escapeHtml(p)}" data-row="${idx}" value="${escapeHtml(val)}"/></td>`;
+        const cells = visiblePlayers.map(p => {
+          const val = r[p.name] === undefined || r[p.name] === null ? '' : String(r[p.name]);
+          return `<td class="input-cell"><input type="text" class="cell" data-player="${escapeHtml(p.name)}" data-row="${idx}" value="${escapeHtml(val)}"/></td>`;
         }).join('');
-        const remove = `<td><button class="remove-row" data-row="${idx}" title="Remove round">-</button></td>`;
+        const remove = `<td><button class="remove-row" data-row="${idx}">-</button></td>`;
         tr.innerHTML = roundNum + cells + remove;
         tbody.appendChild(tr);
       });
 
-      // footer: totals
-      const totals = players.map(p => {
+      // Footer: totals
+      const totals = visiblePlayers.map(p => {
         let s = 0;
         g.rounds.forEach(r => {
-          const v = r[p];
+          const v = r[p.name];
           const n = (v === null || v === '' || v === undefined) ? 0 : Number(v) || 0;
           s += n;
         });
         return s;
       });
-      tfoot.innerHTML = `<tr class="total-row"><td class="round-num">T</td>` + totals.map(t => `<td>${String(t).padStart(5, ' ')}</td>`).join('') + `<td><button id="addRowButton" class="add-row" title="Add round">+</button></td></tr>`;
+      tfoot.innerHTML = `<tr class="total-row"><td class="round-num">T</td>` + 
+        totals.map(t => `<td>${String(t).padStart(5, ' ')}</td>`).join('') + 
+        `<td><button id="addRowButton" class="add-row">+</button></td></tr>`;
 
-      // bindings: add round
-      document.getElementById('addRowButton').addEventListener('click', () => {
-        // create new round object with default 0s
+      // Bindings
+      document.getElementById('addRowButton').onclick = () => {
         const newR = {};
-        g.players.forEach(p => newR[p] = 0);
+        g.players.forEach(p => newR[p.name] = 0);
         g.rounds.push(newR);
         saveAll();
         renderApp();
-        // focus the last new input
         setTimeout(() => {
           const last = document.querySelector(`input.cell[data-row="${g.rounds.length - 1}"]`);
           last && last.focus();
         }, 60);
-      });
+      };
 
-      // remove row
       tbody.querySelectorAll('.remove-row').forEach(b => {
-        b.addEventListener('click', (e) => {
+        b.onclick = (e) => {
           const index = Number(e.target.dataset.row);
           confirmDialog('Remove round', `Remove round ${index + 1}?`, () => {
             g.rounds.splice(index, 1);
             saveAll();
             renderApp();
           });
-        });
+        };
       });
 
-      // Improved input handling: allow free typing, commit on blur or Enter
       tbody.querySelectorAll('input.cell').forEach(inp => {
-        // store last good value
-        inp.dataset.lastGood = inp.value;
-
-        // light validation while typing (reject non-digit except leading - and decimal point)
-        inp.addEventListener('input', (e) => {
-          const el = e.target;
-          // allow empty, -, digits and optional dot for decimals
-          const val = el.value;
-          if (/^-?$/.test(val) || /^-?\d*\.?\d*$/.test(val)) {
-            // acceptable while typing; remember as lastGood
-            el.dataset.lastGood = val;
-          } else {
-            // invalid: revert to last good value
-            el.value = el.dataset.lastGood || '';
-          }
-        });
-
-        // commit on blur
-        inp.addEventListener('blur', (e) => {
+        inp.onblur = (e) => {
           const el = e.target;
           const row = Number(el.dataset.row);
-          const player = el.dataset.player;
+          const playerName = el.dataset.player;
           const raw = el.value.trim();
-          if (raw === '') {
-            g.rounds[row][player] = '';
-          } else {
-            const num = Number(raw);
-            g.rounds[row][player] = Number.isFinite(num) ? num : raw;
-          }
+          g.rounds[row][playerName] = (raw === '') ? '' : (Number.isFinite(Number(raw)) ? Number(raw) : raw);
           saveAll();
-          // commit finished: re-render once
           renderApp();
-        });
-
-        // commit if Enter pressed
-        inp.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            inp.blur(); // triggers blur handler which commits and rerenders
-          }
-        });
+        };
+        inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } };
       });
 
-      menuPlayers.addEventListener('click', () => { openPlayersModal(g); });
-      menuReset.addEventListener('click', () => { resetGame(g.id); });
-
+      menuPlayers.onclick = () => openPlayersModal(g);
+      menuReset.onclick = () => resetGame(g.id);
     }
 
     // ---------- Tally ----------
     function renderTally(g) {
+      g.players = g.players.map(p => typeof p === 'string' ? { name: p, hidden: false } : p);
       g.tally = g.tally || g.players.map(() => 0);
-      const players = g.players;
+      
       const wrap = document.createElement('div');
       wrap.innerHTML = `<div class="tally-grid" id="tallyGrid"></div>`;
       gameArea.innerHTML = '';
       gameArea.appendChild(wrap);
       const grid = document.getElementById('tallyGrid');
 
-      // compute max sets among players to align columns
-      const setsCounts = players.map((p, idx) => Math.ceil((g.tally[idx] || 0)) / 5);
-      const maxSets = Math.max(1, ...setsCounts, 6); // ensure at least 6 visible sets as requested
+      const visiblePlayers = g.players.map((p, i) => ({ ...p, originalIdx: i })).filter(p => !p.hidden);
+      const maxSets = Math.max(1, ...visiblePlayers.map(p => Math.ceil(g.tally[p.originalIdx] / 5)), 6);
 
-      // create columns (one per player)
-      grid.innerHTML = '';
-      players.forEach((p, idx) => {
-        const plWrap = document.createElement('div'); plWrap.className = 'tally-player card'; plWrap.style.padding = '8px';
-        plWrap.innerHTML = `<div class="tally-name">${escapeHtml(p)}</div><div class="tally-squares" id="player-${idx}"></div>
-      <div class="controls-row"><button class="menu-btn plus" data-idx="${idx}">＋</button><button class="menu-btn minus" data-idx="${idx}">－</button></div>`;
+      visiblePlayers.forEach((p) => {
+        const plWrap = document.createElement('div'); 
+        plWrap.className = 'tally-player card'; 
+        plWrap.style.padding = '8px';
+        plWrap.innerHTML = `
+          <div class="tally-name">${escapeHtml(p.name)}</div>
+          <div class="tally-squares" id="player-${p.originalIdx}"></div>
+          <div class="controls-row">
+            <button class="menu-btn plus" data-idx="${p.originalIdx}">＋</button>
+            <button class="menu-btn minus" data-idx="${p.originalIdx}">－</button>
+          </div>`;
         grid.appendChild(plWrap);
 
         const container = plWrap.querySelector('.tally-squares');
-        // create sets rows
         for (let s = 0; s < maxSets; s++) {
           const sq = document.createElement('div');
           sq.className = 'sq';
-          sq.dataset.set = s;
-          sq.dataset.player = idx;
-
-          // add 5 possible tally segments inside each square
-          const segLeft = document.createElement('div'); segLeft.className = 'seg seg-left hidden';
-          const segTop = document.createElement('div'); segTop.className = 'seg seg-top hidden';
-          const segRight = document.createElement('div'); segRight.className = 'seg seg-right hidden';
-          const segBottom = document.createElement('div'); segBottom.className = 'seg seg-bottom hidden';
-          const segDiag = document.createElement('div'); segDiag.className = 'seg seg-diag hidden';
-
-          sq.append(segLeft, segTop, segRight, segBottom, segDiag);
+          sq.innerHTML = '<div class="seg seg-left hidden"></div><div class="seg seg-top hidden"></div><div class="seg seg-right hidden"></div><div class="seg seg-bottom hidden"></div><div class="seg seg-diag hidden"></div>';
           container.appendChild(sq);
+        }
+        
+        // Fill segments
+        let score = g.tally[p.originalIdx] || 0;
+        const cells = container.querySelectorAll('.sq');
+        for (let s = 0; s < cells.length && score > 0; s++) {
+          const fill = Math.min(5, score);
+          const cell = cells[s];
+          if (fill >= 1) cell.querySelector('.seg-left').classList.remove('hidden');
+          if (fill >= 2) cell.querySelector('.seg-top').classList.remove('hidden');
+          if (fill >= 3) cell.querySelector('.seg-right').classList.remove('hidden');
+          if (fill >= 4) cell.querySelector('.seg-bottom').classList.remove('hidden');
+          if (fill >= 5) cell.querySelector('.seg-diag').classList.remove('hidden');
+          score -= fill;
         }
       });
 
-      // align vertical spacing: ensure all players have equal column heights by CSS (done by flex/align)
-      // fill according to scores
-      function refreshTallyDisplay() {
-        players.forEach((p, idx) => {
-          const score = g.tally[idx] || 0;
-          const sets = Math.floor(score / 5);
-          const extra = score % 5;
-          const playerContainer = document.getElementById('player-' + idx);
-          const sqs = playerContainer.querySelectorAll('.sq');
-          sqs.forEach((sq, i) => {
-            // map i to overall sequence: sequence number = setIndex*5 + segIndex
-            const segIndex = i;
-            if (segIndex < score) {
-              // determine which segment(s) to show in this cell: cell shows a single segment out of 5; but spec says segments sequence within square: left,top,right,bottom,diagonal. So each square is filled according to how many marks in that set.
-              // For our representation, we need to fill first 1..5 segments inside each square depending on (score - setIndex*5)
-              // But simpler: determine the set number and how many in that set are filled:
-              const setNum = Math.floor(i / 5);
-            }
-          });
-
-          // simpler approach: iterate over sets and fill cells
-          const container = playerContainer;
-          const cells = container.querySelectorAll('.sq');
-          // reset all
-          cells.forEach(c => {
-            c.querySelectorAll('.seg').forEach(s => s.classList.add('hidden'));
-          });
-          // fill
-          let remaining = score;
-          for (let s = 0; s < cells.length; s++) {
-            if (remaining <= 0) break;
-            // for this square at index s: fill up to 5 segments
-            const fillCount = Math.min(5, remaining);
-            const baseIndex = s;
-            const cell = cells[s]; // the first square for the set
-            // show segments: 1->left, 2->left+top, 3->left+top+right, 4->...bottom, 5->...diag
-            if (fillCount >= 1) cell.querySelector('.seg-left').classList.remove('hidden');
-            if (fillCount >= 2) cell.querySelector('.seg-top').classList.remove('hidden');
-            if (fillCount >= 3) cell.querySelector('.seg-right').classList.remove('hidden');
-            if (fillCount >= 4) cell.querySelector('.seg-bottom').classList.remove('hidden');
-            if (fillCount >= 5) cell.querySelector('.seg-diag').classList.remove('hidden');
-            remaining -= fillCount;
-          }
-        });
-      }
-
-      // plus/minus handlers
       grid.querySelectorAll('.plus').forEach(b => {
-        b.addEventListener('click', (e) => {
+        b.onclick = (e) => {
           const idx = Number(e.target.dataset.idx);
-          g.tally[idx] = (g.tally[idx] || 0) + 1;
-          saveAll();
-          renderApp(); // re-render to adjust number of sets if necessary
-        });
-      });
-      // clicking anywhere on that player's squares also adds 1
-      grid.querySelectorAll('.tally-squares').forEach(container => {
-        container.addEventListener('click', e => {
-          const playerIdx = Number(container.id.replace('player-', ''));
-          g.tally[playerIdx] = (g.tally[playerIdx] || 0) + 1;
-          saveAll();
-          renderApp();
-        });
+          g.tally[idx]++;
+          saveAll(); renderApp();
+        };
       });
       grid.querySelectorAll('.minus').forEach(b => {
-        b.addEventListener('click', (e) => {
+        b.onclick = (e) => {
           const idx = Number(e.target.dataset.idx);
-          g.tally[idx] = Math.max(0, (g.tally[idx] || 0) - 1);
-          saveAll();
-          renderApp();
+          g.tally[idx] = Math.max(0, g.tally[idx] - 1);
+          saveAll(); renderApp();
+        };
+
+        // click anywhere on squares to add score
+        grid.querySelectorAll('.tally-squares').forEach(container => {
+        container.onclick = () => {
+            // Extract the original index from the element's ID (e.g., "player-2")
+            const playerIdx = Number(container.id.replace('player-', ''));
+            g.tally[playerIdx] = (g.tally[playerIdx] || 0) + 1;
+            saveAll(); //
+            renderApp(); //
+        };
         });
       });
 
-      menuPlayers.addEventListener('click', () => { openPlayersModal(g); });
-      menuReset.addEventListener('click', () => { resetGame(g.id); });
-
-      // finally refresh display of segments
-      refreshTallyDisplay();
+      menuPlayers.onclick = () => openPlayersModal(g);
+      menuReset.onclick = () => resetGame(g.id);
     }
 
     // ---------- Fixed ----------
     function renderFixed(g) {
-      g.rows = g.rows || (templates[g.template] || []).map(l => ({ label: l, vals: [] }));
-      const players = g.players;
-      const wrap = document.createElement('div');
-      wrap.innerHTML = `<div class="table-wrap"><table id="fixedTable"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>`;
+      g.players = g.players.map(p => typeof p === 'string' ? { name: p, hidden: false } : p);
+      const visiblePlayers = g.players.map((p, i) => ({ ...p, originalIdx: i })).filter(p => !p.hidden);
+      
+      const table = document.createElement('div');
+      table.innerHTML = `<div class="table-wrap"><table id="fixedTable"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>`;
       gameArea.innerHTML = '';
-      gameArea.appendChild(wrap);
-      const table = document.getElementById('fixedTable');
-      const thead = table.querySelector('thead');
+      gameArea.appendChild(table);
       const tbody = table.querySelector('tbody');
-      const tfoot = table.querySelector('tfoot');
 
-      // header
+      // Header
       const ths = document.createElement('tr');
-      ths.innerHTML = `<th class="label-left"></th>` + players.map(p => `<th>${escapeHtml(p)}</th>`).join('') + `<th style="width:40px"></th>`;
-      thead.appendChild(ths);
+      ths.innerHTML = `<th class="label-left"></th>` + 
+        visiblePlayers.map(p => `<th>${escapeHtml(p.name)}</th>`).join('') + `<th></th>`;
+      table.querySelector('thead').appendChild(ths);
 
-      // rows
-      tbody.innerHTML = '';
+      // Rows
       g.rows.forEach((row, ridx) => {
         const tr = document.createElement('tr');
-        tr.dataset.row = ridx;
-        const labelCell = `<td class="label-left">${escapeHtml(row.label)}</td>`;
-        const cells = players.map((p, pidx) => {
-          const val = (row.vals[pidx] === null || row.vals[pidx] === undefined) ? '' : String(row.vals[pidx]);
-          return `<td class="input-cell"><input type="text" class="cell" data-row="${ridx}" data-col="${pidx}" value="${escapeHtml(val)}"/></td>`;
+        const cells = visiblePlayers.map((p) => {
+          const val = (row.vals[p.originalIdx] == null) ? '' : String(row.vals[p.originalIdx]);
+          return `<td class="input-cell"><input type="text" class="cell" data-row="${ridx}" data-col="${p.originalIdx}" value="${escapeHtml(val)}"/></td>`;
         }).join('');
-        const spacer = `<td></td>`;
-        tr.innerHTML = labelCell + cells + spacer;
+        tr.innerHTML = `<td class="label-left">${escapeHtml(row.label)}</td>` + cells + `<td></td>`;
         tbody.appendChild(tr);
       });
 
-      // footer - totals
-      const totals = players.map((p, pidx) => {
+      // Footer totals
+      const totals = visiblePlayers.map((p) => {
         let s = 0;
-        g.rows.forEach(r => {
-          const v = r.vals[pidx];
-          const n = (v === null || v === '' || v === undefined) ? 0 : Number(v) || 0;
-          s += n;
-        });
+        g.rows.forEach(r => s += (Number(r.vals[p.originalIdx]) || 0));
         return s;
       });
-      tfoot.innerHTML = `<tr class="total-row"><td class="label-left">T</td>` + totals.map(t => `<td>${String(t).padStart(5, ' ')}</td>`).join('') + `<td></td></tr>`;
+      table.querySelector('tfoot').innerHTML = `<tr class="total-row"><td class="label-left">T</td>` + 
+        totals.map(t => `<td>${t}</td>`).join('') + `<td></td></tr>`;
 
-      // Improved input handling for Fixed: free typing, commit on blur/Enter
       tbody.querySelectorAll('input.cell').forEach(inp => {
-        inp.dataset.lastGood = inp.value;
-
-        inp.addEventListener('input', (e) => {
-          const el = e.target;
-          const val = el.value;
-          if (/^-?$/.test(val) || /^-?\d*\.?\d*$/.test(val)) {
-            el.dataset.lastGood = val;
-          } else {
-            el.value = el.dataset.lastGood || '';
-          }
-        });
-
-        inp.addEventListener('blur', (e) => {
-          const el = e.target;
-          const r = Number(el.dataset.row);
-          const c = Number(el.dataset.col);
-          const raw = el.value.trim();
-          if (raw === '') g.rows[r].vals[c] = null;
-          else {
-            const num = Number(raw);
-            g.rows[r].vals[c] = Number.isFinite(num) ? num : raw;
-          }
-          saveAll();
-          renderApp();
-        });
-
-        inp.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            inp.blur();
-          }
-        });
+        inp.onblur = (e) => {
+          const r = Number(e.target.dataset.row), c = Number(e.target.dataset.col), raw = e.target.value.trim();
+          g.rows[r].vals[c] = (raw === '') ? null : (Number.isFinite(Number(raw)) ? Number(raw) : raw);
+          saveAll(); renderApp();
+        };
+        inp.onkeydown = (e) => { if (e.key === 'Enter') inp.blur(); };
       });
 
-      menuPlayers.addEventListener('click', () => { openPlayersModal(g); });
-      menuReset.addEventListener('click', () => { resetGame(g.id); });
-
+      menuPlayers.onclick = () => openPlayersModal(g);
+      menuReset.onclick = () => resetGame(g.id);
     }
 
     // Toggle dropdown

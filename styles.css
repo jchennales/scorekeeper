@@ -294,6 +294,16 @@ input.cell {
     color: var(--text-color);
 }
 
+.player-hidden {
+    opacity: 0.5;
+    font-style: italic;
+}
+
+.toggle-btn {
+    background: var(--muted) !important;
+    margin-right: 4px;
+}
+
 .total-row {
     font-weight: 600;
     background: linear-gradient(180deg, hsl(0deg 0% 100% / 2%), transparent)
