@@ -288,6 +288,12 @@ input.cell {
     z-index: 2
 }
 
+.player-name-edit {
+    font-size: .9rem;
+    font-weight: 400;
+    color: var(--text-color);
+}
+
 .total-row {
     font-weight: 600;
     background: linear-gradient(180deg, hsl(0deg 0% 100% / 2%), transparent)

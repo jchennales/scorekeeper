@@ -446,36 +446,80 @@
     }
 
     function openPlayersModal(g) {
-      const pls = g.players.map((p, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px"><div>${escapeHtml(p)}</div><div><button class="menu-btn remove-player" data-idx="${i}">Remove</button></div></div>`).join('');
+      const pls = g.players.map((p, i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid var(--border-color)">
+          <div class="player-name-edit" data-idx="${i}" style="cursor:pointer; flex-grow:1;" title="Click to rename">
+            ${escapeHtml(p)}
+          </div>
+          <div>
+            <button class="menu-btn remove-player" data-idx="${i}">Remove</button>
+          </div>
+        </div>`).join('');
+
       confirmTitle.textContent = 'Players';
-      confirmText.innerHTML = `<div style="max-height:240px;overflow:auto">${pls}</div><div style="margin-top:8px"><button id="addPlayerBtn" class="btn" title="Add player">➕ Player</button></div>`;
+      confirmText.innerHTML = `
+        <div style="max-height:240px;overflow:auto">${pls}</div>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <button id="addPlayerBtn" class="btn" style="width:100%">➕ Add Player</button>
+        </div>`;
+      
       modalConfirm.style.display = 'flex';
       confirmCancel.style.display = 'none';
-      confirmOk.onclick = () => { modalConfirm.style.display = 'none'; confirmOk.style.display = 'inline-block'; };
+      confirmOk.style.display = 'inline-block';
+      confirmOk.onclick = () => { modalConfirm.style.display = 'none'; };
 
-      // Add player flow: shows a small prompt to type name
+      // --- Event Listeners ---
+
+      // Rename Logic
+      confirmText.querySelectorAll('.player-name-edit').forEach(el => {
+        el.addEventListener('click', (ev) => {
+          const idx = Number(el.dataset.idx);
+          const oldName = g.players[idx];
+          const newName = prompt('Rename player:', oldName);
+          
+          if (newName && newName.trim() !== "" && newName !== oldName) {
+            const trimmedName = newName.trim();
+            
+            // Update name in the players array
+            const oldPlayerName = g.players[idx];
+            g.players[idx] = trimmedName;
+
+            // Update Standard game rounds keys if necessary
+            if (g.type === 'Standard') {
+              g.rounds.forEach(r => {
+                if (r.hasOwnProperty(oldPlayerName)) {
+                  r[trimmedName] = r[oldPlayerName];
+                  delete r[oldPlayerName];
+                }
+              });
+            }
+
+            saveAll();
+            renderApp();
+            openPlayersModal(g); // Refresh the modal
+          }
+        });
+      });
+
+      // Add Player Logic
       const addPlayerBtn = document.getElementById('addPlayerBtn');
       addPlayerBtn.addEventListener('click', () => {
-        if (!activeGameId) { alert('Open or create a game first (Games menu).'); return; }
-        const g = findGame(activeGameId);
-        const name = prompt('Player name.');
+        const name = prompt('Player name:');
         if (!name) return;
         addPlayerToGame(g, name.trim());
         renderApp();
         openPlayersModal(g);
       });
 
-      // attach remove handlers by delegating after display
+      // Remove Player Logic
       confirmText.querySelectorAll('.remove-player').forEach(b => {
         b.addEventListener('click', (ev) => {
           const idx = Number(ev.target.dataset.idx);
           modalConfirm.style.display = 'none';
-          confirmOk.style.display = 'inline-block';
           removePlayerFromGame(g, idx);
         });
       });
     }
-
 
     // ---------- Standard ----------
     function renderStandard(g) {
