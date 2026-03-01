@@ -700,7 +700,7 @@
       // Bindings
       document.getElementById('addRowButton').onclick = () => {
         const newR = {};
-        g.players.forEach(p => newR[p.name] = 0);
+        g.players.forEach(p => newR[p.name] = '');
         g.rounds.push(newR);
         saveAll();
         renderApp();
@@ -1159,10 +1159,11 @@
       try {
         // Check if Web Share API supports file sharing
         if (navigator.canShare && navigator.canShare({ files: [new File([pngBlob], filename, { type: 'image/png' })] })) {
+          const g = findGame(activeGameId);
           const file = new File([pngBlob], filename, { type: 'image/png' });
           await navigator.share({
             title: 'Game Export',
-            text: 'Here is the game export image.',
+            text: g.title + ' - ' + formatDateISO(g.createdAt),
             files: [file],
           });
           // console.log('Shared successfully!');
